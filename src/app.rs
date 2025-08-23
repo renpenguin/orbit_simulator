@@ -14,11 +14,6 @@ enum ClickMode {
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
 pub struct App {
-    // Example stuff:
-    label: String,
-    #[serde(skip)] // This how you opt-out of serialization of a field
-    value: f32,
-
     #[serde(skip)]
     click_mode: ClickMode,
 
@@ -30,10 +25,6 @@ pub struct App {
 impl Default for App {
     fn default() -> Self {
         Self {
-            // Example stuff:
-            label: "Hello World!".to_owned(),
-            value: 2.7,
-
             click_mode: ClickMode::Select,
             planets: Vec::new(),
             last_draw: Instant::now(),
@@ -123,32 +114,6 @@ impl eframe::App for App {
 
         // For selected or pinned planets
         // egui::Window::new("planet 0")
-
-        egui::Window::new("Intro")
-            .default_pos((100.0, 100.0))
-            .show(ctx, |ui| {
-                // The central panel the region left after adding TopPanel's and SidePanel's
-                ui.heading("eframe template");
-
-                ui.horizontal(|ui| {
-                    ui.label("Write something: ");
-                    ui.text_edit_singleline(&mut self.label);
-                });
-
-                ui.add(egui::Slider::new(&mut self.value, 0.0..=10.0).text("value"));
-                if ui.button("Increment").clicked() {
-                    self.value += 1.0;
-                }
-
-                ui.with_layout(egui::Layout::bottom_up(egui::Align::Min), |ui| {
-                    ui.add(egui::github_link_file!(
-                        "https://github.com/emilk/eframe_template/blob/main/",
-                        "Source code."
-                    ));
-
-                    ui.separator();
-                });
-            });
 
         let delta_time = self.last_draw.elapsed();
         self.last_draw = Instant::now();
