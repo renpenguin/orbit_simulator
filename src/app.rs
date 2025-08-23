@@ -1,6 +1,14 @@
 use egui::{Color32, Frame, Pos2, Rect, Sense, emath::RectTransform};
 use web_time::{Duration, Instant};
 
+const SHORTCUTS: [(&str, &str); 5] = [
+    ("Ctrl /", "Open this screen"),
+    ("Ctrl +", "Zoom in"),
+    ("Ctrl -", "Zoom out"),
+    ("Ctrl 0", "Reset size"),
+    ("Space", "Toggle simulation"),
+];
+
 #[derive(Debug, PartialEq, Eq)]
 enum ClickMode {
     Select,
@@ -16,6 +24,8 @@ enum ClickMode {
 pub struct App {
     #[serde(skip)]
     click_mode: ClickMode,
+    #[serde(skip)]
+    shortcuts_shown: bool,
 
     planets: Vec<Pos2>,
     #[serde(skip)]
@@ -26,6 +36,7 @@ impl Default for App {
     fn default() -> Self {
         Self {
             click_mode: ClickMode::Select,
+            shortcuts_shown: false,
             planets: Vec::new(),
             last_draw: Instant::now(),
         }
@@ -62,6 +73,26 @@ impl eframe::App for App {
         // Put your widgets into a `SidePanel`, `TopBottomPanel`, `CentralPanel`, `Window` or `Area`.
         // For inspiration and more examples, go to https://emilk.github.io/egui
 
+        // Check new key presses
+        ctx.input(|i| {
+            for event in &i.events {
+                match &event {
+                    // Shortcut key
+                    egui::Event::Key {
+                        key: egui::Key::Slash,
+                        pressed: true,
+                        repeat: false,
+                        modifiers,
+                        ..
+                    } if modifiers.contains(egui::Modifiers::CTRL) => {
+                        self.shortcuts_shown = !self.shortcuts_shown;
+                    }
+
+                    _ => (),
+                }
+            }
+        });
+
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             // The top panel is often a good place for a menu bar:
 
@@ -95,6 +126,10 @@ impl eframe::App for App {
                     }
                 });
 
+                if ui.button("Help").clicked() {
+                    self.shortcuts_shown = !self.shortcuts_shown;
+                }
+
                 ui.add_space(20.0);
 
                 ui.radio_value(&mut self.click_mode, ClickMode::Select, "Select");
@@ -114,6 +149,52 @@ impl eframe::App for App {
 
         // For selected or pinned planets
         // egui::Window::new("planet 0")
+
+        // Define the size of the shortcuts window to always fill the central panel, with an 8-pixel margin.
+        let mut shortcuts_rect = ctx.screen_rect();
+        *shortcuts_rect.top_mut() += 24.0;
+        *shortcuts_rect.bottom_mut() -= 48.0;
+        *shortcuts_rect.right_mut() -= 15.0;
+        shortcuts_rect = shortcuts_rect.shrink(8.0);
+
+        // Shortcuts window
+        egui::Window::new("Shortcuts Cheatsheet")
+            .fixed_rect(shortcuts_rect)
+            .collapsible(false)
+            .open(&mut self.shortcuts_shown)
+            .show(ctx, |ui| {
+                egui::ScrollArea::vertical()
+                    .auto_shrink(false)
+                    .show(ui, |ui| {
+                        egui::Grid::new("shortcuts_cheatsheet")
+                            .spacing(egui::Vec2::splat(8.0))
+                            .show(ui, |ui| {
+                                for (shortcut, description) in SHORTCUTS {
+                                    let widget_width = ui
+                                        .horizontal(|ui| {
+                                            ui.label(
+                                                egui::RichText::new(shortcut)
+                                                    .monospace()
+                                                    .size(24.0),
+                                            );
+                                            ui.label(egui::RichText::new(description).size(16.0));
+                                            ui.add_space(8.0);
+                                        })
+                                        .response
+                                        .rect
+                                        .width();
+
+                                    // If there is not enough space for another widget, start a new row
+                                    if (shortcuts_rect.width() - ui.cursor().left_top().x
+                                        + shortcuts_rect.left())
+                                        < widget_width
+                                    {
+                                        ui.end_row();
+                                    }
+                                }
+                            });
+                    });
+            });
 
         let delta_time = self.last_draw.elapsed();
         self.last_draw = Instant::now();
