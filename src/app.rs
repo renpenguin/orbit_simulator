@@ -1,12 +1,29 @@
+use egui::{Color32, Frame, Pos2, Rect, Sense, emath::RectTransform};
+
+#[derive(Debug, PartialEq, Eq)]
+enum ClickMode {
+    Select,
+    Translate,
+    Scale,
+    Spawn,
+    Delete,
+}
+
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
 pub struct App {
     // Example stuff:
     label: String,
-
     #[serde(skip)] // This how you opt-out of serialization of a field
     value: f32,
+
+    #[serde(skip)]
+    click_mode: ClickMode,
+
+    planets: Vec<Pos2>,
+    // #[serde(skip)]
+    // last_draw: Instant,
 }
 
 impl Default for App {
@@ -15,6 +32,10 @@ impl Default for App {
             // Example stuff:
             label: "Hello World!".to_owned(),
             value: 2.7,
+
+            click_mode: ClickMode::Select,
+            planets: Vec::new(),
+            // last_draw: Instant::now(),
         }
     }
 }
@@ -24,6 +45,8 @@ impl App {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         // This is also where you can customize the look and feel of egui using
         // `cc.egui_ctx.set_visuals` and `cc.egui_ctx.set_fonts`.
+
+        cc.egui_ctx.set_theme(egui::Theme::Dark);
 
         // Load previous app state (if any).
         // Note that you must enable the `persistence` feature for this to work.
@@ -42,6 +65,7 @@ impl eframe::App for App {
     }
 
     /// Called each time the UI needs repainting, which may be many times per second.
+    #[expect(clippy::too_many_lines)]
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         // Put your widgets into a `SidePanel`, `TopBottomPanel`, `CentralPanel`, `Window` or `Area`.
         // For inspiration and more examples, go to https://emilk.github.io/egui
@@ -50,60 +74,143 @@ impl eframe::App for App {
             // The top panel is often a good place for a menu bar:
 
             egui::MenuBar::new().ui(ui, |ui| {
-                // NOTE: no File->Quit on web pages!
-                let is_web = cfg!(target_arch = "wasm32");
-                if !is_web {
-                    ui.menu_button("File", |ui| {
+                ui.menu_button("File", |ui| {
+                    if ui.button("New").clicked() {
+                        println!("Start a new world");
+                    }
+                    if ui.button("Load").clicked() {
+                        println!("Load a world from a file");
+                    }
+                    if ui.button("Save").clicked() {
+                        println!("Save the world to a file");
+                    }
+
+                    // NOTE: No File->Quit on web pages!
+                    if !cfg!(target_arch = "wasm32") {
+                        ui.add(egui::Separator::default().grow(6.0));
                         if ui.button("Quit").clicked() {
                             ctx.send_viewport_cmd(egui::ViewportCommand::Close);
                         }
-                    });
-                    ui.add_space(16.0);
+                    }
+                });
+
+                ui.menu_button("Tools", |ui| {
+                    if ui.button("Kepler's 2nd Law").clicked() {
+                        println!("Start a new world");
+                    }
+                    if ui.button("Show forces action planets").clicked() {
+                        println!("Load a world from a file");
+                    }
+                });
+
+                ui.add_space(20.0);
+
+                ui.radio_value(&mut self.click_mode, ClickMode::Select, "Select");
+                ui.radio_value(&mut self.click_mode, ClickMode::Translate, "Move");
+                ui.radio_value(&mut self.click_mode, ClickMode::Scale, "Scale");
+                ui.radio_value(&mut self.click_mode, ClickMode::Spawn, "New");
+                ui.radio_value(&mut self.click_mode, ClickMode::Delete, "Delete");
+
+                ui.add_space(20.0);
+
+                ui.with_layout(
+                    egui::Layout::right_to_left(egui::Align::Center),
+                    egui::warn_if_debug_build,
+                );
+            });
+        });
+
+        // For selected or pinned planets
+        // egui::Window::new("planet 0")
+
+        egui::Window::new("Intro")
+            .default_pos((100.0, 100.0))
+            .show(ctx, |ui| {
+                // The central panel the region left after adding TopPanel's and SidePanel's
+                ui.heading("eframe template");
+
+                ui.horizontal(|ui| {
+                    ui.label("Write something: ");
+                    ui.text_edit_singleline(&mut self.label);
+                });
+
+                ui.add(egui::Slider::new(&mut self.value, 0.0..=10.0).text("value"));
+                if ui.button("Increment").clicked() {
+                    self.value += 1.0;
                 }
 
-                egui::widgets::global_theme_preference_buttons(ui);
-            });
-        });
+                ui.with_layout(egui::Layout::bottom_up(egui::Align::Min), |ui| {
+                    ui.add(egui::github_link_file!(
+                        "https://github.com/emilk/eframe_template/blob/main/",
+                        "Source code."
+                    ));
 
-        egui::CentralPanel::default().show(ctx, |ui| {
-            // The central panel the region left after adding TopPanel's and SidePanel's
-            ui.heading("eframe template");
-
-            ui.horizontal(|ui| {
-                ui.label("Write something: ");
-                ui.text_edit_singleline(&mut self.label);
+                    ui.separator();
+                });
             });
 
-            ui.add(egui::Slider::new(&mut self.value, 0.0..=10.0).text("value"));
-            if ui.button("Increment").clicked() {
-                self.value += 1.0;
-            }
+        // let delta_time = self.last_draw.elapsed();
 
-            ui.separator();
+        // Simulate planets
+        for planet in &mut self.planets {
+            planet.x += 0.1; // 10.0 * delta_time.as_secs_f32();
+        }
 
-            ui.add(egui::github_link_file!(
-                "https://github.com/emilk/eframe_template/blob/main/",
-                "Source code."
-            ));
+        // Main planet space
+        egui::CentralPanel::default()
+            .frame(Frame::default().inner_margin(0.0))
+            .show(ctx, |ui| {
+                // Create a "canvas" for drawing on that's 100% x 300px
+                let (response, painter) = ui.allocate_painter(
+                    egui::Vec2::new(ui.available_width(), ui.available_height()),
+                    Sense::click_and_drag(),
+                );
 
-            ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
-                powered_by_egui_and_eframe(ui);
-                egui::warn_if_debug_build(ui);
+                // Get the relative position of our "canvas"
+                let to_screen = RectTransform::from_to(
+                    Rect::from_min_size(Pos2::ZERO, response.rect.size()),
+                    response.rect,
+                );
+
+                if response.hovered() {
+                    ctx.input(|i| {
+                        if let Some(click_pos) = i.pointer.press_origin() {
+                            // Map screen coordinates to position in painter
+                            let click_pos = to_screen.inverse().transform_pos(click_pos);
+
+                            if i.pointer.primary_pressed() {
+                                match self.click_mode {
+                                    ClickMode::Spawn => self.planets.push(click_pos),
+                                    ClickMode::Delete => {
+                                        let mut planet_under_mouse = None;
+                                        for (i, body) in self.planets.iter().enumerate() {
+                                            let is_selectable =
+                                                (*body - click_pos).length_sq() < 100.0;
+                                            if is_selectable {
+                                                planet_under_mouse = Some(i);
+                                                break;
+                                            }
+                                        }
+                                        if let Some(i) = planet_under_mouse {
+                                            self.planets.swap_remove(i);
+                                        }
+                                    }
+                                    _ => println!("This will do something eventually!"),
+                                }
+                            }
+                        }
+                    });
+                }
+
+                // Background
+                painter.rect_filled(response.rect, 0.0, Color32::BLACK);
+
+                for planet in &self.planets {
+                    painter.circle_filled(to_screen.transform_pos(*planet), 10.0, Color32::WHITE);
+                }
             });
-        });
+
+        // self.last_draw = Instant::now();
+        // ctx.request_repaint_after(std::time::Duration::from_secs_f32(1.0 / 60.0));
     }
-}
-
-fn powered_by_egui_and_eframe(ui: &mut egui::Ui) {
-    ui.horizontal(|ui| {
-        ui.spacing_mut().item_spacing.x = 0.0;
-        ui.label("Powered by ");
-        ui.hyperlink_to("egui", "https://github.com/emilk/egui");
-        ui.label(" and ");
-        ui.hyperlink_to(
-            "eframe",
-            "https://github.com/emilk/egui/tree/master/crates/eframe",
-        );
-        ui.label(".");
-    });
 }
