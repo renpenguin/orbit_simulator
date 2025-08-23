@@ -1,4 +1,5 @@
 use egui::{Color32, Frame, Pos2, Rect, Sense, emath::RectTransform};
+use web_time::{Duration, Instant};
 
 #[derive(Debug, PartialEq, Eq)]
 enum ClickMode {
@@ -22,8 +23,8 @@ pub struct App {
     click_mode: ClickMode,
 
     planets: Vec<Pos2>,
-    // #[serde(skip)]
-    // last_draw: Instant,
+    #[serde(skip)]
+    last_draw: Instant,
 }
 
 impl Default for App {
@@ -35,7 +36,7 @@ impl Default for App {
 
             click_mode: ClickMode::Select,
             planets: Vec::new(),
-            // last_draw: Instant::now(),
+            last_draw: Instant::now(),
         }
     }
 }
@@ -149,11 +150,12 @@ impl eframe::App for App {
                 });
             });
 
-        // let delta_time = self.last_draw.elapsed();
+        let delta_time = self.last_draw.elapsed();
+        self.last_draw = Instant::now();
 
         // Simulate planets
         for planet in &mut self.planets {
-            planet.x += 0.1; // 10.0 * delta_time.as_secs_f32();
+            planet.x += 10.0 * delta_time.as_secs_f32();
         }
 
         // Main planet space
@@ -210,7 +212,6 @@ impl eframe::App for App {
                 }
             });
 
-        // self.last_draw = Instant::now();
-        // ctx.request_repaint_after(std::time::Duration::from_secs_f32(1.0 / 60.0));
+        ctx.request_repaint_after(Duration::from_secs_f32(1.0 / 60.0));
     }
 }
