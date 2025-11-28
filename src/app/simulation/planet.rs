@@ -72,7 +72,7 @@ impl Div<f64> for Vec2 {
 impl Mul<Vec2> for f64 {
     type Output = Vec2;
     fn mul(self, rhs: Vec2) -> Self::Output {
-        Vec2::new(self * rhs.x, self * rhs.x)
+        Vec2::new(self * rhs.x, self * rhs.y)
     }
 }
 
