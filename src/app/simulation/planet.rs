@@ -86,19 +86,19 @@ pub struct Planet {
 }
 
 impl Planet {
-    pub fn new(pos: Vec2, mass: f64) -> Rc<Self> {
-        Rc::new(Self {
+    pub fn new(pos: Vec2, mass: f64) -> Rc<RefCell<Self>> {
+        Rc::new(RefCell::new(Self {
             pos,
             vel: Vec2::ZERO,
             mass,
             locked: false,
             popup_open: true,
-        })
+        }))
     }
 
     // Calculate the radius of the planet
     pub fn radius(&self) -> f64 {
-        const PLANET_DESCALE: f64 = 12.0;
+        const PLANET_DESCALE: f64 = 1.0;
         self.mass.sqrt() / PLANET_DESCALE
     }
 

@@ -231,7 +231,7 @@ impl eframe::App for App {
                                     ClickMode::Spawn => self.simulation.spawn_planet_at(click_pos),
                                     ClickMode::Delete => {
                                         let mut planet_under_mouse = None;
-                                        for (i, body) in self.simulation.planets.iter().enumerate() {
+                                        for (i, body) in self.simulation.get_planets().enumerate() {
                                             let is_selectable = (click_pos - Pos2::from(body.pos))
                                                 .length_sq()
                                                 < 100.0;
@@ -252,7 +252,7 @@ impl eframe::App for App {
                 }
 
                 // Draw planets
-                for planet in &self.simulation.planets {
+                for planet in self.simulation.get_planets() {
                     painter.circle_filled(
                         to_screen.transform_pos(planet.pos.into()),
                         planet.radius() as f32,
