@@ -91,6 +91,16 @@ impl eframe::App for App {
                         self.shortcuts_shown = !self.shortcuts_shown;
                     }
 
+                    // Play/pause
+                    egui::Event::Key {
+                        key: egui::Key::Space,
+                        pressed: true,
+                        repeat: false,
+                        ..
+                    } => {
+                        self.simulation.playing = !self.simulation.playing;
+                    }
+
                     _ => (),
                 }
             }
@@ -131,6 +141,15 @@ impl eframe::App for App {
 
                 if ui.button("Help").clicked() {
                     self.shortcuts_shown = !self.shortcuts_shown;
+                }
+
+                let pause_button_label = if self.simulation.playing {
+                    "Playing"
+                } else {
+                    "Paused"
+                };
+                if ui.button(pause_button_label).clicked() {
+                    self.simulation.playing = !self.simulation.playing;
                 }
 
                 ui.add_space(20.0);
@@ -203,8 +222,10 @@ impl eframe::App for App {
         self.last_draw = Instant::now();
 
         // Simulate planets
-        self.simulation.simulate_gravity();
-        // self.simulation.handle_collisions();
+        if self.simulation.playing {
+            self.simulation.simulate_gravity();
+            // self.simulation.handle_collisions();
+        }
 
         // Main planet space
         egui::CentralPanel::default()

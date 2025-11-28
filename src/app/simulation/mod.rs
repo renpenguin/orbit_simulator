@@ -12,7 +12,7 @@ pub struct Simulation {
     pub planets: Vec<Rc<RefCell<Planet>>>,
     pub tick_rate: usize,
     pub is_k2l_enabled: bool,
-    pub paused: bool,
+    pub playing: bool,
 }
 
 impl Default for Simulation {
@@ -21,7 +21,7 @@ impl Default for Simulation {
             planets: vec![],
             tick_rate: 1,
             is_k2l_enabled: false,
-            paused: false,
+            playing: true,
         }
     }
 }
