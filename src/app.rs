@@ -206,13 +206,11 @@ impl eframe::App for App {
 
         // Main planet space
         egui::CentralPanel::default()
-            .frame(Frame::default().inner_margin(0.0))
+            .frame(Frame::default().inner_margin(0.0).fill(Color32::BLACK))
             .show(ctx, |ui| {
                 // Create a "canvas" for drawing on that's 100% x 300px
-                let (response, painter) = ui.allocate_painter(
-                    egui::Vec2::new(ui.available_width(), ui.available_height()),
-                    Sense::click_and_drag(),
-                );
+                let (response, painter) =
+                    ui.allocate_painter(ui.available_size(), Sense::click_and_drag());
 
                 // Get the relative position of our "canvas"
                 let to_screen = RectTransform::from_to(
@@ -249,9 +247,6 @@ impl eframe::App for App {
                         }
                     });
                 }
-
-                // Background
-                painter.rect_filled(response.rect, 0.0, Color32::BLACK);
 
                 for planet in &self.planets {
                     painter.circle_filled(to_screen.transform_pos(*planet), 10.0, Color32::WHITE);
