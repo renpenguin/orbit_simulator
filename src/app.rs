@@ -1,6 +1,9 @@
 use egui::{Color32, Frame, Pos2, Rect, Sense, emath::RectTransform};
 use web_time::{Duration, Instant};
 
+mod simulation;
+use simulation::Simulation;
+
 const SHORTCUTS: [(&str, &str); 5] = [
     ("Ctrl /", "Open this screen"),
     ("Ctrl +", "Zoom in"),
@@ -27,7 +30,7 @@ pub struct App {
     #[serde(skip)]
     shortcuts_shown: bool,
 
-    planets: Vec<Pos2>,
+    simulation: Simulation,
     #[serde(skip)]
     last_draw: Instant,
 }
@@ -37,7 +40,7 @@ impl Default for App {
         Self {
             click_mode: ClickMode::Select,
             shortcuts_shown: false,
-            planets: Vec::new(),
+            simulation: Simulation::default(),
             last_draw: Instant::now(),
         }
     }
@@ -196,13 +199,12 @@ impl eframe::App for App {
                     });
             });
 
-        let delta_time = self.last_draw.elapsed();
+        // let delta_time = self.last_draw.elapsed().as_secs_f64();
         self.last_draw = Instant::now();
 
         // Simulate planets
-        for planet in &mut self.planets {
-            planet.x += 10.0 * delta_time.as_secs_f32();
-        }
+        self.simulation.simulate_gravity();
+        // self.simulation.handle_collisions();
 
         // Main planet space
         egui::CentralPanel::default()
@@ -226,19 +228,20 @@ impl eframe::App for App {
 
                             if i.pointer.primary_pressed() {
                                 match self.click_mode {
-                                    ClickMode::Spawn => self.planets.push(click_pos),
+                                    ClickMode::Spawn => self.simulation.spawn_planet_at(click_pos),
                                     ClickMode::Delete => {
                                         let mut planet_under_mouse = None;
-                                        for (i, body) in self.planets.iter().enumerate() {
-                                            let is_selectable =
-                                                (*body - click_pos).length_sq() < 100.0;
+                                        for (i, body) in self.simulation.planets.iter().enumerate() {
+                                            let is_selectable = (click_pos - Pos2::from(body.pos))
+                                                .length_sq()
+                                                < 100.0;
                                             if is_selectable {
                                                 planet_under_mouse = Some(i);
                                                 break;
                                             }
                                         }
                                         if let Some(i) = planet_under_mouse {
-                                            self.planets.swap_remove(i);
+                                            self.simulation.planets.swap_remove(i);
                                         }
                                     }
                                     _ => println!("This will do something eventually!"),
@@ -248,8 +251,13 @@ impl eframe::App for App {
                     });
                 }
 
-                for planet in &self.planets {
-                    painter.circle_filled(to_screen.transform_pos(*planet), 10.0, Color32::WHITE);
+                // Draw planets
+                for planet in &self.simulation.planets {
+                    painter.circle_filled(
+                        to_screen.transform_pos(planet.pos.into()),
+                        planet.radius() as f32,
+                        Color32::WHITE,
+                    );
                 }
             });
 
