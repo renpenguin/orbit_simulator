@@ -223,8 +223,8 @@ impl eframe::App for App {
 
         // Simulate planets
         if self.simulation.playing {
+            self.simulation.handle_collisions();
             self.simulation.simulate_gravity();
-            // self.simulation.handle_collisions();
         }
 
         // Main planet space

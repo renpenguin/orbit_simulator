@@ -59,7 +59,45 @@ impl Simulation {
         }
     }
 
-    pub fn collide_planets(&mut self) {
-        todo!();
+    pub fn handle_collisions(&mut self) {
+        let planets_len = self.planets.len();
+        // Stores true at index of planet to delete
+        let mut planets_to_delete = vec![false; planets_len];
+
+        for first in 0..planets_len {
+            for second in (first + 1)..planets_len {
+                if planets_to_delete[first] || planets_to_delete[second] {
+                    continue;
+                }
+
+                let separation =
+                    self.planets[second].borrow().pos - self.planets[first].borrow().pos;
+                let distance_squared = separation.x.powi(2) + separation.y.powi(2);
+
+                let threshold_distance =
+                    self.planets[first].borrow().radius() + self.planets[second].borrow().radius();
+
+                if distance_squared < threshold_distance.powi(2) {
+                    // Turn first planet into result planet of collision
+                    let combined_planet = self.planets[first]
+                        .borrow()
+                        .collide_planets(&self.planets[second].borrow());
+                    self.planets[first] = Rc::new(RefCell::new(combined_planet));
+                    // Mark second planet for deletion
+                    planets_to_delete[second] = true;
+                }
+            }
+        }
+
+        // Remove all planets marked for deletion
+        let mut planet_idx = 0;
+        while planet_idx < planets_to_delete.len() {
+            if planets_to_delete[planet_idx] {
+                self.planets.swap_remove(planet_idx);
+                planets_to_delete.swap_remove(planet_idx);
+            } else {
+                planet_idx += 1;
+            }
+        }
     }
 }
