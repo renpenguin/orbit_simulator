@@ -6,7 +6,7 @@ use std::{
 
 use egui::Pos2;
 
-const G: f64 = 1.0; // Change later to 6.67e-11
+const G: f64 = 2.0; // Change later to 6.67e-11
 
 #[derive(serde::Deserialize, serde::Serialize, Debug, Clone, Copy)]
 pub struct Vec2 {
@@ -98,7 +98,7 @@ impl Planet {
 
     // Calculate the radius of the planet
     pub fn radius(&self) -> f64 {
-        const PLANET_DESCALE: f64 = 1.0;
+        const PLANET_DESCALE: f64 = 4.0;
         self.mass.sqrt() / PLANET_DESCALE
     }
 

@@ -33,7 +33,7 @@ impl Simulation {
     }
 
     pub fn spawn_planet_at(&mut self, pos: Pos2) {
-        self.planets.push(Planet::new(pos.into(), 80.0));
+        self.planets.push(Planet::new(pos.into(), 960.0));
     }
 
     // Move planets based on gravity
@@ -53,9 +53,9 @@ impl Simulation {
 
         for (i, planet) in self.planets.iter().enumerate() {
             let mut planet = planet.borrow_mut();
-            let vel = planet.vel + forces[i];
-            planet.vel = vel;
-            planet.pos += vel;
+            let velocity = planet.vel + forces[i] / planet.mass;
+            planet.vel = velocity;
+            planet.pos += velocity;
         }
     }
 
