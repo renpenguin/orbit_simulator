@@ -12,11 +12,12 @@ const SHORTCUTS: [(&str, &str); 5] = [
     ("Space", "Toggle simulation"),
 ];
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ClickMode {
     Select,
     Translate,
     Scale,
+    Aim,
     Spawn,
     Delete,
 }
@@ -231,11 +232,12 @@ impl App {
 
                 ui.add_space(20.0);
 
-                ui.radio_value(&mut self.click_mode, ClickMode::Select, "Select");
-                ui.radio_value(&mut self.click_mode, ClickMode::Translate, "Move");
-                ui.radio_value(&mut self.click_mode, ClickMode::Scale, "Scale");
-                ui.radio_value(&mut self.click_mode, ClickMode::Spawn, "New");
-                ui.radio_value(&mut self.click_mode, ClickMode::Delete, "Delete");
+                ui.selectable_value(&mut self.click_mode, ClickMode::Select, "Select");
+                ui.selectable_value(&mut self.click_mode, ClickMode::Translate, "Move");
+                ui.selectable_value(&mut self.click_mode, ClickMode::Scale, "Scale");
+                ui.selectable_value(&mut self.click_mode, ClickMode::Aim, "Aim");
+                ui.selectable_value(&mut self.click_mode, ClickMode::Spawn, "New");
+                ui.selectable_value(&mut self.click_mode, ClickMode::Delete, "Delete");
 
                 ui.add_space(20.0);
 
