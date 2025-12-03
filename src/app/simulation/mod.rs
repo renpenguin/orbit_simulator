@@ -32,8 +32,15 @@ impl Simulation {
         self.planets.iter().map(|p| p.borrow())
     }
 
-    pub fn spawn_planet_at(&mut self, pos: Pos2) {
-        self.planets.push(Planet::new(pos.into(), 960.0));
+    // Return the index of the first planet found at the passed position
+    pub fn try_find_planet_at_pos(&self, pos: Vec2) -> Option<usize> {
+        for (i, body) in self.get_planets().enumerate() {
+            if (pos - body.pos).length_sq() < body.radius().powi(2) {
+                return Some(i);
+            }
+        }
+
+        None
     }
 
     // Move planets based on gravity
@@ -72,12 +79,11 @@ impl Simulation {
 
                 let separation =
                     self.planets[second].borrow().pos - self.planets[first].borrow().pos;
-                let distance_squared = separation.x.powi(2) + separation.y.powi(2);
 
                 let threshold_distance =
                     self.planets[first].borrow().radius() + self.planets[second].borrow().radius();
 
-                if distance_squared < threshold_distance.powi(2) {
+                if separation.length_sq() < threshold_distance.powi(2) {
                     // Turn first planet into result planet of collision
                     let combined_planet = self.planets[first]
                         .borrow()

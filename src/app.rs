@@ -1,8 +1,13 @@
 use egui::{Color32, Frame, Pos2, Rect, Sense, emath::RectTransform};
 use web_time::{Duration, Instant};
 
+mod selection;
+use selection::{Selection, SelectionMode};
+
 mod simulation;
 use simulation::Simulation;
+
+use crate::app::simulation::Vec2;
 
 const SHORTCUTS: [(&str, &str); 5] = [
     ("Ctrl /", "Open this screen"),
@@ -31,6 +36,9 @@ pub struct App {
     #[serde(skip)]
     shortcuts_shown: bool,
 
+    #[serde(skip)]
+    selection: Selection,
+
     simulation: Simulation,
     #[serde(skip)]
     last_draw: Instant,
@@ -41,6 +49,7 @@ impl Default for App {
         Self {
             click_mode: ClickMode::Select,
             shortcuts_shown: false,
+            selection: Selection::None,
             simulation: Simulation::default(),
             last_draw: Instant::now(),
         }
@@ -107,7 +116,14 @@ impl eframe::App for App {
 
                 // Handle mouse inputs
                 if response.hovered() {
-                    self.handle_sim_mouse_input(ctx, to_screen);
+                    ctx.input(|input_state| {
+                        if let Some(mouse_pos) = input_state.pointer.latest_pos() {
+                            // Map screen coordinates to position in painter
+                            let mouse_pos = to_screen.inverse().transform_pos(mouse_pos).into();
+
+                            self.handle_sim_mouse_input(&input_state.pointer, mouse_pos);
+                        }
+                    });
                 }
 
                 // Draw planets
@@ -154,35 +170,38 @@ impl App {
     }
 
     // Handle mouse inputs (clicking, moving) while over the simulation area
-    fn handle_sim_mouse_input(&mut self, ctx: &egui::Context, to_screen: RectTransform) {
-        ctx.input(|i| {
-            if let Some(click_pos) = i.pointer.press_origin() {
-                // Map screen coordinates to position in painter
-                let click_pos = to_screen.inverse().transform_pos(click_pos);
+    fn handle_sim_mouse_input(&mut self, mouse_state: &egui::PointerState, mouse_pos: Vec2) {
+        if mouse_state.primary_pressed() {
+            let clicked_planet = self.simulation.try_find_planet_at_pos(mouse_pos);
 
-                if i.pointer.primary_pressed() {
-                    match self.click_mode {
-                        ClickMode::Spawn => self.simulation.spawn_planet_at(click_pos),
-                        ClickMode::Delete => {
-                            let mut planet_under_mouse = None;
-                            for (i, body) in self.simulation.get_planets().enumerate() {
-                                let is_selectable = (click_pos - Pos2::from(body.pos))
-                                    .length_sq()
-                                    < 100.0;
-                                if is_selectable {
-                                    planet_under_mouse = Some(i);
-                                    break;
-                                }
-                            }
-                            if let Some(i) = planet_under_mouse {
-                                self.simulation.planets.swap_remove(i);
-                            }
-                        }
-                        _ => println!("This will do something eventually!"),
+            match self.click_mode {
+                ClickMode::Spawn => self.simulation.planets.push(simulation::Planet::new(mouse_pos, 960.0)),
+                ClickMode::Delete => {
+                    if let Some(i) = clicked_planet {
+                        self.simulation.planets.swap_remove(i);
+                        self.selection = Selection::None;
+                    }
+                }
+                other => {
+                    if let Some(i) = clicked_planet {
+                        let planet = &self.simulation.planets[i];
+                        self.selection = Selection::new(other, planet, mouse_pos);
+                    } else {
+                        self.selection = Selection::None;
                     }
                 }
             }
-        });
+        }
+
+        // Complete operation if mouse released, selection exists and is not "Selected"
+        if mouse_state.primary_released()
+            && let Selection::Some { mode, .. } = &self.selection
+            && *mode != SelectionMode::Selected
+        {
+            self.selection = Selection::None;
+        }
+
+        self.selection.mouse_motion(mouse_pos);
     }
 
     fn draw_top_panel(&mut self, ctx: &egui::Context) {

@@ -8,7 +8,7 @@ use egui::Pos2;
 
 const G: f64 = 2.0; // Change later to 6.67e-11
 
-#[derive(serde::Deserialize, serde::Serialize, Debug, Clone, Copy)]
+#[derive(serde::Deserialize, serde::Serialize, Debug, Clone, Copy, PartialEq)]
 pub struct Vec2 {
     pub x: f64,
     pub y: f64,
@@ -20,6 +20,11 @@ impl Vec2 {
     pub const fn new(x: f64, y: f64) -> Self {
         Self { x, y }
     }
+
+    // Return the magnitude of the vector squared
+    pub fn length_sq(&self) -> f64 {
+        self.x * self.x + self.y * self.y
+    }
 }
 
 impl From<Vec2> for Pos2 {
@@ -29,6 +34,10 @@ impl From<Vec2> for Pos2 {
 }
 impl From<Pos2> for Vec2 {
     fn from(value: Pos2) -> Self {
+        Self::new(value.x as f64, value.y as f64)
+    }
+}impl From<egui::Vec2> for Vec2 {
+    fn from(value: egui::Vec2) -> Self {
         Self::new(value.x as f64, value.y as f64)
     }
 }
@@ -106,7 +115,7 @@ impl Planet {
     pub fn calculate_force_between_planets(&self, other: &Self) -> Vec2 {
         let separation = other.pos - self.pos;
         // # We can calculate d^2 instead of d. This way we don't need to call sqrt()
-        let distance_squared = separation.x.powi(2) + separation.y.powi(2);
+        let distance_squared = separation.length_sq();
 
         // F_g = G * m_1 * m_2 / d^2
         let magnitude = G * self.mass * other.mass / distance_squared;
