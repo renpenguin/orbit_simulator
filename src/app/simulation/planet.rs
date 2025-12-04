@@ -6,7 +6,8 @@ use std::{
 
 use egui::Pos2;
 
-const G: f64 = 2.0; // Change later to 6.67e-11
+const G: f64 = 1.0; // Change later to 6.67e-11
+pub const TRAIL_SCALE: f64 = 8.0;
 
 #[derive(serde::Deserialize, serde::Serialize, Debug, Clone, Copy, PartialEq)]
 pub struct Vec2 {
@@ -36,9 +37,15 @@ impl From<Pos2> for Vec2 {
     fn from(value: Pos2) -> Self {
         Self::new(value.x as f64, value.y as f64)
     }
-}impl From<egui::Vec2> for Vec2 {
+}
+impl From<egui::Vec2> for Vec2 {
     fn from(value: egui::Vec2) -> Self {
         Self::new(value.x as f64, value.y as f64)
+    }
+}
+impl From<Vec2> for egui::Vec2 {
+    fn from(value: Vec2) -> Self {
+        Self::new(value.x as f32, value.y as f32)
     }
 }
 

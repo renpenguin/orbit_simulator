@@ -1,4 +1,5 @@
 use egui::{Color32, Frame, Pos2, Rect, Sense, emath::RectTransform};
+use std::f32::consts::FRAC_PI_2;
 use web_time::{Duration, Instant};
 
 mod selection;
@@ -7,7 +8,7 @@ use selection::{Selection, SelectionMode};
 mod simulation;
 use simulation::Simulation;
 
-use crate::app::simulation::Vec2;
+use crate::app::simulation::{TRAIL_SCALE, Vec2};
 
 const SHORTCUTS: [(&str, &str); 5] = [
     ("Ctrl /", "Open this screen"),
@@ -128,10 +129,22 @@ impl eframe::App for App {
 
                 // Draw planets
                 for planet in self.simulation.get_planets() {
-                    painter.circle_filled(
-                        to_screen.transform_pos(planet.pos.into()),
-                        planet.radius() as f32,
-                        Color32::WHITE,
+                    let centre_pos = to_screen.transform_pos(planet.pos.into());
+                    let radius = planet.radius() as f32;
+
+                    painter.circle_filled(centre_pos, radius, Color32::WHITE);
+
+                    let angle = planet.vel.y.atan2(planet.vel.x) as f32;
+                    let side_offset = radius * egui::Vec2::angled(angle + FRAC_PI_2);
+
+                    painter.line(
+                        vec![
+                            centre_pos + side_offset,
+                            centre_pos - side_offset,
+                            centre_pos - TRAIL_SCALE as f32 * egui::Vec2::from(planet.vel),
+                            centre_pos + side_offset,
+                        ],
+                        (1.0, Color32::GRAY),
                     );
                 }
             });

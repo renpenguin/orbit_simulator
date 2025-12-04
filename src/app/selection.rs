@@ -1,4 +1,3 @@
-use egui::Pos2;
 use std::{
     cell::RefCell,
     rc::{Rc, Weak},
@@ -6,7 +5,7 @@ use std::{
 
 use crate::app::{
     ClickMode,
-    simulation::{Planet, Vec2},
+    simulation::{Planet, TRAIL_SCALE, Vec2},
 };
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -77,7 +76,7 @@ impl Selection {
             }
             // Aim planet
             SelectionMode::Aiming { original_velocity } => {
-                planet.vel = *original_velocity + mouse_pos - *initial_mouse_pos;
+                planet.vel = *original_velocity - (mouse_pos - *initial_mouse_pos) / TRAIL_SCALE;
             }
         }
     }

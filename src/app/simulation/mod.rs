@@ -4,8 +4,7 @@ use std::{
     rc::Rc,
 };
 
-use egui::Pos2;
-pub use planet::{Planet, Vec2};
+pub use planet::{Planet, Vec2, TRAIL_SCALE};
 
 #[derive(serde::Deserialize, serde::Serialize, Debug)]
 pub struct Simulation {
