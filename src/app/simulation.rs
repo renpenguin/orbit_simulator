@@ -4,7 +4,7 @@ use std::{
     rc::Rc,
 };
 
-pub use planet::{Planet, Vec2, TRAIL_SCALE};
+pub use planet::{Planet, TRAIL_SCALE, Vec2};
 
 #[derive(serde::Deserialize, serde::Serialize, Debug)]
 pub struct Simulation {

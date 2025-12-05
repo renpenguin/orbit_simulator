@@ -8,7 +8,7 @@ use selection::{Selection, SelectionMode};
 mod simulation;
 use simulation::Simulation;
 
-use crate::app::simulation::{TRAIL_SCALE, Vec2};
+use crate::app::simulation::{Planet, TRAIL_SCALE, Vec2};
 
 const SHORTCUTS: [(&str, &str); 5] = [
     ("Ctrl /", "Open this screen"),
@@ -188,7 +188,7 @@ impl App {
             let clicked_planet = self.simulation.try_find_planet_at_pos(mouse_pos);
 
             match self.click_mode {
-                ClickMode::Spawn => self.simulation.planets.push(simulation::Planet::new(mouse_pos, 960.0)),
+                ClickMode::Spawn => self.simulation.planets.push(Planet::new(mouse_pos, 960.0)),
                 ClickMode::Delete => {
                     if let Some(i) = clicked_planet {
                         self.simulation.planets.swap_remove(i);
@@ -222,7 +222,7 @@ impl App {
             egui::MenuBar::new().ui(ui, |ui| {
                 ui.menu_button("File", |ui| {
                     if ui.button("New").clicked() {
-                        println!("Start a new world");
+                        self.simulation = Simulation::default();
                     }
                     if ui.button("Load").clicked() {
                         println!("Load a world from a file");

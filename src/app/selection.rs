@@ -11,9 +11,16 @@ use crate::app::{
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum SelectionMode {
     Selected,
-    Translating { original_pos: Vec2 },
-    Scaling { original_mass: f64, original_distance_sq: f64 },
-    Aiming { original_velocity: Vec2 },
+    Translating {
+        original_pos: Vec2,
+    },
+    Scaling {
+        original_mass: f64,
+        original_distance_sq: f64,
+    },
+    Aiming {
+        original_velocity: Vec2,
+    },
 }
 
 pub enum Selection {
@@ -69,7 +76,10 @@ impl Selection {
                 planet.pos = *original_pos + mouse_pos - *initial_mouse_pos;
             }
             // Scale planet
-            SelectionMode::Scaling { original_mass, original_distance_sq } => {
+            SelectionMode::Scaling {
+                original_mass,
+                original_distance_sq,
+            } => {
                 // Current distance to planet / original distance to planet
                 let scale_ratio = (planet.pos - mouse_pos).length_sq() / *original_distance_sq;
                 planet.mass = *original_mass * scale_ratio;
