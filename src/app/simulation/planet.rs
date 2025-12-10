@@ -9,7 +9,7 @@ use egui::Pos2;
 const G: f64 = 1.0; // Change later to 6.67e-11
 pub const TRAIL_SCALE: f64 = 8.0;
 
-#[derive(serde::Deserialize, serde::Serialize, Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Vec2 {
     pub x: f64,
     pub y: f64,
@@ -92,7 +92,7 @@ impl Mul<Vec2> for f64 {
     }
 }
 
-#[derive(serde::Deserialize, serde::Serialize, Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct Planet {
     pub pos: Vec2, // Position
     pub vel: Vec2, // Velocity

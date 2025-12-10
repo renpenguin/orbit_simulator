@@ -6,7 +6,7 @@ use std::{
 
 pub use planet::{Planet, TRAIL_SCALE, Vec2};
 
-#[derive(serde::Deserialize, serde::Serialize, Debug)]
+#[derive(Debug)]
 pub struct Simulation {
     pub planets: Vec<Rc<RefCell<Planet>>>,
     pub tick_rate: usize,
