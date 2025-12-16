@@ -54,6 +54,22 @@ impl Selection {
         }
     }
 
+    /// Return a strong reference to a planet, if there is a selection and the planet exists
+    pub fn extract_planet(&mut self) -> Option<Rc<RefCell<Planet>>> {
+        // Only continue if there is a selection
+        let Self::Some { planet, .. } = self else {
+            return None;
+        };
+
+        // If the planet has been deleted, forget the selection
+        if planet.strong_count() == 0 {
+            *self = Self::None;
+            return None;
+        }
+
+        planet.upgrade()
+    }
+
     pub fn mouse_motion(&mut self, mouse_pos: Vec2) {
         // Ensure that a selection exists
         #[rustfmt::skip]

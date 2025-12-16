@@ -98,6 +98,7 @@ impl eframe::App for App {
                             let mouse_pos = to_screen.inverse().transform_pos(mouse_pos).into();
 
                             self.handle_sim_mouse_input(&input_state.pointer, mouse_pos);
+                            self.handle_selection_shortcut(input_state, mouse_pos);
                         }
                     });
                 }
@@ -138,7 +139,7 @@ impl App {
 
         match key {
             // Shortcut key
-            egui::Key::Slash if modifiers.contains(egui::Modifiers::CTRL) => {
+            egui::Key::Slash if modifiers.ctrl => {
                 self.shortcuts_shown = !self.shortcuts_shown;
             }
 
@@ -147,7 +148,94 @@ impl App {
                 self.simulation.playing = !self.simulation.playing;
             }
 
+            // ____X to delete the currently selected planet
+            egui::Key::X => {
+                let Some(planet_to_delete) = self.selection.extract_planet() else {
+                    return;
+                };
+
+                let addr_to_delete = planet_to_delete.as_ptr().addr();
+                for i in 0..self.simulation.planets.len() {
+                    // Does this pointer have the same address as the selection's planet pointer?
+                    if self.simulation.planets[i].as_ptr().addr() == addr_to_delete {
+                        self.simulation.planets.swap_remove(i);
+                        self.selection = Selection::None;
+                        break;
+                    }
+                }
+            }
+
+            // 1..=6 number keys to set clickmode
+            egui::Key::Num1 => self.click_mode = ClickMode::Select,
+            egui::Key::Num2 => self.click_mode = ClickMode::Translate,
+            egui::Key::Num3 => self.click_mode = ClickMode::Scale,
+            egui::Key::Num4 => self.click_mode = ClickMode::Aim,
+            egui::Key::Num5 => self.click_mode = ClickMode::Spawn,
+            egui::Key::Num6 => self.click_mode = ClickMode::Delete,
+
+            // Cancel operation
+            egui::Key::Escape => {
+                if let Selection::Some { mode, planet, .. } = &mut self.selection {
+                    let Some(planet) = planet.upgrade() else {
+                        self.selection = Selection::None;
+                        return;
+                    };
+                    let mut planet = planet.borrow_mut();
+                    match mode {
+                        SelectionMode::Selected => (),
+                        SelectionMode::Translating { original_pos } => {
+                            planet.pos = *original_pos;
+                        }
+                        SelectionMode::Scaling { original_mass, .. } => {
+                            planet.mass = *original_mass;
+                        }
+                        SelectionMode::Aiming { original_velocity } => {
+                            planet.vel = *original_velocity;
+                        }
+                    }
+                    *mode = SelectionMode::Selected;
+                }
+            }
+
             _ => (),
+        }
+    }
+
+    fn handle_selection_shortcut(&mut self, input_state: &egui::InputState, mouse_pos: Vec2) {
+        // Ignore Ctrl+_ (in particular Ctrl+S)
+        if input_state.modifiers.ctrl {
+            return;
+        }
+
+        // GSVA_
+        // For GSV, only continue if there is a selection and the planet exists. Any old selection will be overwritten, confirming the old operation
+        if input_state.key_pressed(egui::Key::G) {
+            if let Some(planet) = self.selection.extract_planet() {
+                self.selection = Selection::new(ClickMode::Translate, &planet, mouse_pos);
+            };
+        }
+        if input_state.key_pressed(egui::Key::S) {
+            if let Some(planet) = self.selection.extract_planet() {
+                self.selection = Selection::new(ClickMode::Scale, &planet, mouse_pos);
+            };
+        }
+        if input_state.key_pressed(egui::Key::V) {
+            if let Some(planet) = self.selection.extract_planet() {
+                self.selection = Selection::new(ClickMode::Aim, &planet, mouse_pos);
+            };
+        }
+        if input_state.key_pressed(egui::Key::A) {
+            // Create and select a new planet
+            let planet = Planet::new(mouse_pos, 960.0);
+            self.selection = Selection::new(ClickMode::Select, &planet, mouse_pos);
+            self.simulation.planets.push(planet);
+        }
+
+        if input_state.key_pressed(egui::Key::Enter) {
+            // Overwrites previous operation, confirming it. Akin to GSV
+            if let Some(planet) = self.selection.extract_planet() {
+                self.selection = Selection::new(ClickMode::Select, &planet, mouse_pos);
+            };
         }
     }
 
@@ -157,7 +245,12 @@ impl App {
             let clicked_planet = self.simulation.try_find_planet_at_pos(mouse_pos);
 
             match self.click_mode {
-                ClickMode::Spawn => self.simulation.planets.push(Planet::new(mouse_pos, 960.0)),
+                ClickMode::Spawn => {
+                    // Create and select a new planet
+                    let new_planet = Planet::new(mouse_pos, 960.0);
+                    self.selection = Selection::new(ClickMode::Select, &new_planet, mouse_pos);
+                    self.simulation.planets.push(new_planet);
+                }
                 ClickMode::Delete => {
                     if let Some(i) = clicked_planet {
                         self.simulation.planets.swap_remove(i);
