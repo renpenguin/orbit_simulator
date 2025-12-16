@@ -123,6 +123,20 @@ impl eframe::App for App {
                         (1.0, Color32::GRAY),
                     );
                 }
+
+                // Selection indicator
+                if (self.click_mode == ClickMode::Select || self.click_mode == ClickMode::Spawn) && let Some(planet) = self.selection.extract_planet() {
+                    let planet = planet.borrow();
+                    let centre_pos = to_screen.transform_pos(planet.pos.into());
+                    let radius = planet.radius() as f32 + 4.0;
+                    painter.line(vec![
+                        centre_pos + egui::Vec2::new(-radius, -radius),
+                        centre_pos + egui::Vec2::new(radius, -radius),
+                        centre_pos + egui::Vec2::new(radius, radius),
+                        centre_pos + egui::Vec2::new(-radius, radius),
+                        centre_pos + egui::Vec2::new(-radius, -radius),
+                    ], (1.0, Color32::LIGHT_BLUE));
+                }
             });
 
         ctx.request_repaint_after(Duration::from_secs_f32(1.0 / 60.0));
@@ -136,6 +150,9 @@ impl App {
         let egui::Event::Key { key, modifiers, pressed: true, repeat: false, .. } = event else {
             return;
         };
+
+        // Report pressed keys
+        // println!("Pressed {}{:?}", if modifiers.ctrl { "CTRL " } else { "" }, key);
 
         match key {
             // Shortcut key
@@ -242,6 +259,14 @@ impl App {
     // Handle mouse inputs (clicking, moving) while over the simulation area
     fn handle_sim_mouse_input(&mut self, mouse_state: &egui::PointerState, mouse_pos: Vec2) {
         if mouse_state.primary_pressed() {
+            // If an operation is in progress, confirm it and don't attempt to select a new planet
+            if let Selection::Some { mode, .. } = &mut self.selection {
+                if *mode != SelectionMode::Selected {
+                    *mode = SelectionMode::Selected;
+                    return;
+                }
+            }
+
             let clicked_planet = self.simulation.try_find_planet_at_pos(mouse_pos);
 
             match self.click_mode {
