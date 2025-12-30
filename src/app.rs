@@ -125,17 +125,22 @@ impl eframe::App for App {
                 }
 
                 // Selection indicator
-                if (self.click_mode == ClickMode::Select || self.click_mode == ClickMode::Spawn) && let Some(planet) = self.selection.extract_planet() {
+                if (self.click_mode == ClickMode::Select || self.click_mode == ClickMode::Spawn)
+                    && let Some(planet) = self.selection.extract_planet()
+                {
                     let planet = planet.borrow();
                     let centre_pos = to_screen.transform_pos(planet.pos.into());
                     let radius = planet.radius() as f32 + 4.0;
-                    painter.line(vec![
-                        centre_pos + egui::Vec2::new(-radius, -radius),
-                        centre_pos + egui::Vec2::new(radius, -radius),
-                        centre_pos + egui::Vec2::new(radius, radius),
-                        centre_pos + egui::Vec2::new(-radius, radius),
-                        centre_pos + egui::Vec2::new(-radius, -radius),
-                    ], (1.0, Color32::LIGHT_BLUE));
+                    painter.line(
+                        vec![
+                            centre_pos + egui::Vec2::new(-radius, -radius),
+                            centre_pos + egui::Vec2::new(radius, -radius),
+                            centre_pos + egui::Vec2::new(radius, radius),
+                            centre_pos + egui::Vec2::new(-radius, radius),
+                            centre_pos + egui::Vec2::new(-radius, -radius),
+                        ],
+                        (1.0, Color32::LIGHT_BLUE),
+                    );
                 }
             });
 
@@ -378,23 +383,21 @@ impl App {
         shortcuts_rect = shortcuts_rect.shrink(8.0);
 
         // Shortcuts window
-        egui::Window::new("Shortcuts Cheatsheet").fixed_rect(shortcuts_rect).collapsible(false).open(&mut self.shortcuts_shown).show(ctx, |ui| {
-            egui::ScrollArea::vertical().auto_shrink(false).show(ui, |ui| {
-                egui::Grid::new("shortcuts_cheatsheet").spacing(egui::Vec2::splat(8.0)).show(ui, |ui| {
-                    for (shortcut, description) in SHORTCUTS {
-                        let widget_width = ui.horizontal(|ui| {
-                            ui.label(egui::RichText::new(shortcut).monospace().size(24.0));
-                            ui.label(egui::RichText::new(description).size(16.0));
-                            ui.add_space(8.0);
-                        }).response.rect.width();
+        egui::Window::new("Shortcuts Cheatsheet").fixed_rect(shortcuts_rect).collapsible(false).open(&mut self.shortcuts_shown).vscroll(true).show(ctx, |ui| {
+            egui::Grid::new("shortcuts_cheatsheet").spacing(egui::Vec2::splat(8.0)).show(ui, |ui| {
+                for (shortcut, description) in SHORTCUTS {
+                    let widget_width = ui.horizontal(|ui| {
+                        ui.label(egui::RichText::new(shortcut).monospace().size(24.0));
+                        ui.label(egui::RichText::new(description).size(16.0));
+                        ui.add_space(8.0);
+                    }).response.rect.width();
 
-                        // If there is not enough space for another widget, start a new row
-                        let remaining_width = shortcuts_rect.width() - ui.cursor().left_top().x + shortcuts_rect.left();
-                        if remaining_width < widget_width {
-                            ui.end_row();
-                        }
+                    // If there is not enough space for another widget, start a new row
+                    let remaining_width = shortcuts_rect.width() - ui.cursor().left_top().x + shortcuts_rect.left();
+                    if remaining_width < widget_width {
+                        ui.end_row();
                     }
-                });
+                }
             });
         });
     }
