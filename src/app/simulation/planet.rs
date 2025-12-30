@@ -108,7 +108,7 @@ impl Planet {
             vel: Vec2::ZERO,
             mass,
             locked: false,
-            popup_open: true,
+            popup_open: false,
         }))
     }
 

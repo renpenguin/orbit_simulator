@@ -67,6 +67,44 @@ impl eframe::App for App {
         self.draw_top_panel(ctx);
         self.draw_shortcuts_screen(ctx);
 
+        // Draw popups
+        for planet_ref in &self.simulation.planets {
+            // Get local access to planet
+            let mut planet = planet_ref.borrow_mut();
+
+            // Skip if planet popup should not be visible
+            if !planet.popup_open {
+                continue;
+            }
+
+            // Get a unique ID for each planet, using its address in memory
+            let planet_id = planet_ref.as_ptr().addr().to_string().into();
+
+            // Draw popup fields
+            egui::Window::new("Planet info")
+                .id(planet_id)
+                .show(ctx, |ui| {
+                    egui::Grid::new(planet_id).show(ui, |ui| {
+                        ui.label("Position");
+                        ui.add(egui::DragValue::new(&mut planet.pos.x));
+                        ui.add(egui::DragValue::new(&mut planet.pos.y));
+                        ui.end_row();
+
+                        ui.label("Velocity");
+                        ui.add(egui::DragValue::new(&mut planet.vel.x));
+                        ui.add(egui::DragValue::new(&mut planet.vel.y));
+                        ui.end_row();
+
+                        ui.label("Mass");
+                        ui.add(egui::DragValue::new(&mut planet.mass).range(1.0..=f64::INFINITY));
+                        ui.end_row();
+
+                        ui.label("Locked");
+                        ui.checkbox(&mut planet.locked, "");
+                    });
+                });
+        }
+
         // let delta_time = self.last_draw.elapsed().as_secs_f64();
         self.last_draw = Instant::now();
 
@@ -304,6 +342,13 @@ impl App {
             && *mode != SelectionMode::Selected
         {
             self.selection = Selection::None;
+        }
+
+        if mouse_state.secondary_pressed() {
+            if let Some(planet_idx) = self.simulation.try_find_planet_at_pos(mouse_pos) {
+                let mut planet = self.simulation.planets[planet_idx].borrow_mut();
+                planet.popup_open = !planet.popup_open;
+            }
         }
 
         self.selection.mouse_motion(mouse_pos);
