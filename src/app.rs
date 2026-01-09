@@ -76,6 +76,7 @@ impl eframe::App for App {
             if !planet.popup_open {
                 continue;
             }
+            let mut is_open = true;
 
             // Get a unique ID for each planet, using its address in memory
             let planet_id = planet_ref.as_ptr().addr().to_string().into();
@@ -83,6 +84,7 @@ impl eframe::App for App {
             // Draw popup fields
             egui::Window::new("Planet info")
                 .id(planet_id)
+                .open(&mut is_open)
                 .show(ctx, |ui| {
                     egui::Grid::new(planet_id).show(ui, |ui| {
                         ui.label("Position");
@@ -103,6 +105,9 @@ impl eframe::App for App {
                         ui.checkbox(&mut planet.locked, "");
                     });
                 });
+
+            // Update planet's popup setting, reflecting whether X button pressed
+            planet.popup_open = is_open;
         }
 
         // let delta_time = self.last_draw.elapsed().as_secs_f64();

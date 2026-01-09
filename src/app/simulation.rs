@@ -59,6 +59,13 @@ impl Simulation {
 
         for (i, planet) in self.planets.iter().enumerate() {
             let mut planet = planet.borrow_mut();
+
+            // Don't move locked planets
+            if planet.locked {
+                planet.vel = Vec2::ZERO;
+                continue;
+            }
+
             let velocity = planet.vel + forces[i] / planet.mass;
             planet.vel = velocity;
             planet.pos += velocity;
