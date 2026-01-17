@@ -28,6 +28,25 @@ enum ClickMode {
     Delete,
 }
 
+// Format to three significant figures
+fn my_formatter(number: f64, _decimals: std::ops::RangeInclusive<usize>) -> String {
+    if number == 0.0 {
+        return String::from("0");
+    }
+
+    let a = number.abs();
+    if (1.0e-2..1.0e4).contains(&a) {
+        let n = 1.0 + a.log10().floor();
+
+        let precision = (3.0 - n).max(0.0) as usize;
+
+        format!("{number:.precision$}")
+    } else {
+        // 3 significant figures = 1 digit always before period, 2 digits after
+        format!("{number:.2e}")
+    }
+}
+
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 pub struct App {
     click_mode: ClickMode,
@@ -44,6 +63,9 @@ impl App {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         cc.egui_ctx.set_theme(egui::Theme::Dark);
         cc.egui_ctx.set_zoom_factor(1.4);
+        cc.egui_ctx.style_mut(|style| {
+            style.number_formatter = egui::style::NumberFormatter::new(my_formatter);
+        });
 
         Self {
             click_mode: ClickMode::Select,
@@ -58,11 +80,13 @@ impl App {
 impl eframe::App for App {
     /// Called each time the UI needs repainting, which may be many times per second.
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        ctx.input(|i| {
-            for event in &i.events {
-                self.handle_shortcut(event);
-            }
-        });
+        if !ctx.wants_keyboard_input() {
+            ctx.input(|i| {
+                for event in &i.events {
+                    self.handle_shortcut(event);
+                }
+            });
+        }
 
         self.draw_top_panel(ctx);
         self.draw_shortcuts_screen(ctx);
@@ -98,7 +122,7 @@ impl eframe::App for App {
                         ui.end_row();
 
                         ui.label("Mass");
-                        ui.add(egui::DragValue::new(&mut planet.mass).range(1.0..=f64::INFINITY));
+                        ui.add(egui::DragValue::new(&mut planet.mass).range(f64::EPSILON..=f64::MAX));
                         ui.end_row();
 
                         ui.label("Locked");
@@ -423,7 +447,6 @@ impl App {
         });
     }
 
-    #[rustfmt::skip]
     fn draw_shortcuts_screen(&mut self, ctx: &egui::Context) {
         // Define the size of the shortcuts window to always fill the central panel, with an 8-pixel margin.
         let mut shortcuts_rect = ctx.screen_rect();
@@ -433,22 +456,29 @@ impl App {
         shortcuts_rect = shortcuts_rect.shrink(8.0);
 
         // Shortcuts window
-        egui::Window::new("Shortcuts Cheatsheet").fixed_rect(shortcuts_rect).collapsible(false).open(&mut self.shortcuts_shown).vscroll(true).show(ctx, |ui| {
-            egui::Grid::new("shortcuts_cheatsheet").spacing(egui::Vec2::splat(8.0)).show(ui, |ui| {
-                for (shortcut, description) in SHORTCUTS {
-                    let widget_width = ui.horizontal(|ui| {
-                        ui.label(egui::RichText::new(shortcut).monospace().size(24.0));
-                        ui.label(egui::RichText::new(description).size(16.0));
-                        ui.add_space(8.0);
-                    }).response.rect.width();
+        egui::Window::new("Shortcuts Cheatsheet")
+            .order(egui::Order::Foreground)
+            .fixed_rect(shortcuts_rect)
+            .collapsible(false)
+            .open(&mut self.shortcuts_shown)
+            .vscroll(true)
+            .show(ctx, |ui| {
+                #[rustfmt::skip]
+                egui::Grid::new("shortcuts_cheatsheet").spacing(egui::Vec2::splat(8.0)).show(ui, |ui| {
+                    for (shortcut, description) in SHORTCUTS {
+                        let widget_width = ui.horizontal(|ui| {
+                            ui.label(egui::RichText::new(shortcut).monospace().size(24.0));
+                            ui.label(egui::RichText::new(description).size(16.0));
+                            ui.add_space(8.0);
+                        }).response.rect.width();
 
-                    // If there is not enough space for another widget, start a new row
-                    let remaining_width = shortcuts_rect.width() - ui.cursor().left_top().x + shortcuts_rect.left();
-                    if remaining_width < widget_width {
-                        ui.end_row();
+                        // If there is not enough space for another widget, start a new row
+                        let remaining_width = shortcuts_rect.width() - ui.cursor().left_top().x + shortcuts_rect.left();
+                        if remaining_width < widget_width {
+                            ui.end_row();
+                        }
                     }
-                }
+                });
             });
-        });
     }
 }
