@@ -10,12 +10,25 @@ use simulation::Simulation;
 
 use crate::app::simulation::{Planet, TRAIL_SCALE, Vec2};
 
-const SHORTCUTS: [(&str, &str); 5] = [
-    ("Ctrl /", "Open this screen"),
+const SHORTCUTS: [(&str, &str); 18] = [
+    ("Ctrl N", "Create new"),
+    ("Ctrl O", "Open"),
+    ("Ctrl S", "Save"),
+    ("Ctrl Shift S", "Save as"),
     ("Ctrl +", "Zoom in"),
     ("Ctrl -", "Zoom out"),
     ("Ctrl 0", "Reset size"),
-    ("Space", "Toggle simulation"),
+    ("Ctrl /", "Show shortcuts"),
+    ("Space", "Start/stop"),
+    ("1-6", "Select a tool"),
+    ("RMB", "Open popup"),
+    ("Escape", "Cancel edit"),
+    ("Enter", "Confirm edit"),
+    ("G", "Move selected"),
+    ("S", "Scale selected"),
+    ("V", "Aim selected"),
+    ("A", "Spawn new planet"),
+    ("X", "Delete selected"),
 ];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -473,8 +486,7 @@ impl App {
                         }).response.rect.width();
 
                         // If there is not enough space for another widget, start a new row
-                        let remaining_width = shortcuts_rect.width() - ui.cursor().left_top().x + shortcuts_rect.left();
-                        if remaining_width < widget_width {
+                        if ui.cursor().left() + widget_width > shortcuts_rect.right() {
                             ui.end_row();
                         }
                     }
