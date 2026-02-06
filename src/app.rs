@@ -1,35 +1,13 @@
 use egui::{Color32, Frame, Pos2, Rect, Sense, emath::RectTransform};
-use std::f32::consts::FRAC_PI_2;
 use web_time::{Duration, Instant};
+
+mod draw;
 
 mod selection;
 use selection::{Selection, SelectionMode};
 
 mod simulation;
-use simulation::Simulation;
-
-use crate::app::simulation::{Planet, TRAIL_SCALE, Vec2};
-
-const SHORTCUTS: [(&str, &str); 18] = [
-    ("Ctrl N", "Create new"),
-    ("Ctrl O", "Open"),
-    ("Ctrl S", "Save"),
-    ("Ctrl Shift S", "Save as"),
-    ("Ctrl +", "Zoom in"),
-    ("Ctrl -", "Zoom out"),
-    ("Ctrl 0", "Reset size"),
-    ("Ctrl /", "Show shortcuts"),
-    ("Space", "Start/stop"),
-    ("1-6", "Select a tool"),
-    ("RMB", "Open popup"),
-    ("Escape", "Cancel edit"),
-    ("Enter", "Confirm edit"),
-    ("G", "Move selected"),
-    ("S", "Scale selected"),
-    ("V", "Aim selected"),
-    ("A", "Spawn new planet"),
-    ("X", "Delete selected"),
-];
+use simulation::{Planet, Simulation, Vec2};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ClickMode {
@@ -104,49 +82,11 @@ impl eframe::App for App {
         }
 
         self.draw_top_panel(ctx);
-        self.draw_shortcuts_screen(ctx);
+        draw::shortcuts_screen(ctx, &mut self.shortcuts_shown);
 
         // Draw popups
         for planet_ref in &self.simulation.planets {
-            // Get local access to planet
-            let mut planet = planet_ref.borrow_mut();
-
-            // Skip if planet popup should not be visible
-            if !planet.popup_open {
-                continue;
-            }
-            let mut is_open = true;
-
-            // Get a unique ID for each planet, using its address in memory
-            let planet_id = planet_ref.as_ptr().addr().to_string().into();
-
-            // Draw popup fields
-            egui::Window::new("Planet info")
-                .id(planet_id)
-                .open(&mut is_open)
-                .show(ctx, |ui| {
-                    egui::Grid::new(planet_id).show(ui, |ui| {
-                        ui.label("Position");
-                        ui.add(egui::DragValue::new(&mut planet.pos.x));
-                        ui.add(egui::DragValue::new(&mut planet.pos.y));
-                        ui.end_row();
-
-                        ui.label("Velocity");
-                        ui.add(egui::DragValue::new(&mut planet.vel.x));
-                        ui.add(egui::DragValue::new(&mut planet.vel.y));
-                        ui.end_row();
-
-                        ui.label("Mass");
-                        ui.add(egui::DragValue::new(&mut planet.mass).range(f64::EPSILON..=f64::MAX));
-                        ui.end_row();
-
-                        ui.label("Lock position");
-                        ui.checkbox(&mut planet.locked, "");
-                    });
-                });
-
-            // Update planet's popup setting, reflecting whether X button pressed
-            planet.popup_open = is_open;
+            draw::planet_popup(ctx, planet_ref);
         }
 
         // let delta_time = self.last_draw.elapsed().as_secs_f64();
@@ -187,27 +127,15 @@ impl eframe::App for App {
 
                 // Draw planets
                 for planet in self.simulation.get_planets() {
-                    let centre_pos = to_screen.transform_pos(planet.pos.into());
-                    let radius = planet.radius() as f32;
-
-                    painter.circle_filled(centre_pos, radius, Color32::WHITE);
-
-                    let angle = planet.vel.y.atan2(planet.vel.x) as f32;
-                    let side_offset = radius * egui::Vec2::angled(angle + FRAC_PI_2);
-
-                    painter.line(
-                        vec![
-                            centre_pos + side_offset,
-                            centre_pos - side_offset,
-                            centre_pos - TRAIL_SCALE as f32 * egui::Vec2::from(planet.vel),
-                            centre_pos + side_offset,
-                        ],
-                        (1.0, Color32::GRAY),
+                    draw::planet(
+                        &painter,
+                        &planet,
+                        to_screen.transform_pos(planet.pos.into()),
                     );
                 }
 
                 // Selection indicator
-                if (self.click_mode == ClickMode::Select || self.click_mode == ClickMode::Spawn)
+                if [ClickMode::Select, ClickMode::Spawn].contains(&self.click_mode)
                     && let Some(planet) = self.selection.extract_planet()
                 {
                     let planet = planet.borrow();
@@ -469,39 +397,5 @@ impl App {
                 );
             });
         });
-    }
-
-    fn draw_shortcuts_screen(&mut self, ctx: &egui::Context) {
-        // Define the size of the shortcuts window to always fill the central panel, with an 8-pixel margin.
-        let mut shortcuts_rect = ctx.screen_rect();
-        *shortcuts_rect.top_mut() += 24.0;
-        *shortcuts_rect.bottom_mut() -= 48.0;
-        *shortcuts_rect.right_mut() -= 15.0;
-        shortcuts_rect = shortcuts_rect.shrink(8.0);
-
-        // Shortcuts window
-        egui::Window::new("Shortcuts Cheatsheet")
-            .order(egui::Order::Foreground)
-            .fixed_rect(shortcuts_rect)
-            .collapsible(false)
-            .open(&mut self.shortcuts_shown)
-            .vscroll(true)
-            .show(ctx, |ui| {
-                #[rustfmt::skip]
-                egui::Grid::new("shortcuts_cheatsheet").spacing(egui::Vec2::splat(8.0)).show(ui, |ui| {
-                    for (shortcut, description) in SHORTCUTS {
-                        let widget_width = ui.horizontal(|ui| {
-                            ui.label(egui::RichText::new(shortcut).monospace().size(24.0));
-                            ui.label(egui::RichText::new(description).size(16.0));
-                            ui.add_space(8.0);
-                        }).response.rect.width();
-
-                        // If there is not enough space for another widget, start a new row
-                        if ui.cursor().left() + widget_width > shortcuts_rect.right() {
-                            ui.end_row();
-                        }
-                    }
-                });
-            });
     }
 }
