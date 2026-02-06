@@ -80,6 +80,8 @@ impl App {
             style.number_formatter = egui::style::NumberFormatter::new(my_formatter);
         });
 
+        egui_material_icons::initialize(&cc.egui_ctx);
+
         Self {
             click_mode: ClickMode::Select,
             shortcuts_shown: false,
@@ -138,7 +140,7 @@ impl eframe::App for App {
                         ui.add(egui::DragValue::new(&mut planet.mass).range(f64::EPSILON..=f64::MAX));
                         ui.end_row();
 
-                        ui.label("Locked");
+                        ui.label("Lock position");
                         ui.checkbox(&mut planet.locked, "");
                     });
                 });
@@ -221,6 +223,24 @@ impl eframe::App for App {
                         ],
                         (1.0, Color32::LIGHT_BLUE),
                     );
+                }
+            });
+
+        egui::Window::new("Pause button")
+            .title_bar(false)
+            .resizable(false)
+            .frame(egui::Frame::NONE)
+            .anchor(egui::Align2::RIGHT_TOP, (0.0, 16.0))
+            .show(ctx, |ui| {
+                let pause_button_label = if self.simulation.playing {
+                    egui_material_icons::icons::ICON_PAUSE
+                } else {
+                    egui_material_icons::icons::ICON_PLAY_ARROW
+                };
+                let button = egui::Button::new(egui::RichText::new(pause_button_label).size(48.0))
+                    .frame(false);
+                if ui.add(button).clicked() {
+                    self.simulation.playing = !self.simulation.playing;
                 }
             });
 
@@ -432,23 +452,14 @@ impl App {
                     self.shortcuts_shown = !self.shortcuts_shown;
                 }
 
-                let pause_button_label = if self.simulation.playing {
-                    "Playing"
-                } else {
-                    "Paused"
-                };
-                if ui.button(pause_button_label).clicked() {
-                    self.simulation.playing = !self.simulation.playing;
-                }
-
                 ui.add_space(20.0);
 
-                ui.selectable_value(&mut self.click_mode, ClickMode::Select, "Select");
-                ui.selectable_value(&mut self.click_mode, ClickMode::Translate, "Move");
-                ui.selectable_value(&mut self.click_mode, ClickMode::Scale, "Scale");
-                ui.selectable_value(&mut self.click_mode, ClickMode::Aim, "Aim");
-                ui.selectable_value(&mut self.click_mode, ClickMode::Spawn, "New");
-                ui.selectable_value(&mut self.click_mode, ClickMode::Delete, "Delete");
+                ui.selectable_value(&mut self.click_mode, ClickMode::Select, "1. Select");
+                ui.selectable_value(&mut self.click_mode, ClickMode::Translate, "2. Move");
+                ui.selectable_value(&mut self.click_mode, ClickMode::Scale, "3. Scale");
+                ui.selectable_value(&mut self.click_mode, ClickMode::Aim, "4. Aim");
+                ui.selectable_value(&mut self.click_mode, ClickMode::Spawn, "5. New");
+                ui.selectable_value(&mut self.click_mode, ClickMode::Delete, "6. Delete");
 
                 ui.add_space(20.0);
 

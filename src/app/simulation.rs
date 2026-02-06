@@ -20,7 +20,7 @@ impl Default for Simulation {
             planets: vec![],
             tick_rate: 1,
             is_k2l_enabled: false,
-            playing: true,
+            playing: false,
         }
     }
 }

@@ -21,6 +21,7 @@ eframe = { version = "0.32", default-features = false, features = [
 ] }
 log = "0.4.27"
 web-time = "1.1.0"
+egui_material_icons = "0.4.0" # Play/pause icons
 
 # native:
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
