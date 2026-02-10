@@ -42,6 +42,7 @@ fn my_formatter(number: f64, _decimals: std::ops::RangeInclusive<usize>) -> Stri
 pub struct App {
     click_mode: ClickMode,
     shortcuts_shown: bool,
+    tutorial_page: Option<u8>,
 
     selection: Selection,
 
@@ -63,6 +64,7 @@ impl App {
         Self {
             click_mode: ClickMode::Select,
             shortcuts_shown: false,
+            tutorial_page: Some(0),
             selection: Selection::None,
             simulation: Simulation::default(),
             last_draw: Instant::now(),
@@ -88,6 +90,8 @@ impl eframe::App for App {
         for planet_ref in &self.simulation.planets {
             draw::planet_popup(ctx, planet_ref);
         }
+
+        self.tutorial_popup(ctx);
 
         // let delta_time = self.last_draw.elapsed().as_secs_f64();
         self.last_draw = Instant::now();
@@ -376,9 +380,14 @@ impl App {
                     }
                 });
 
-                if ui.button("Help").clicked() {
-                    self.shortcuts_shown = !self.shortcuts_shown;
-                }
+                ui.menu_button("Help", |ui| {
+                    if ui.button("Tutorial").clicked() {
+                        self.tutorial_page = self.tutorial_page.map_or(Some(0), |_| None);
+                    }
+                    if ui.button("Shortcuts").clicked() {
+                        self.shortcuts_shown = !self.shortcuts_shown;
+                    }
+                });
 
                 ui.add_space(20.0);
 
@@ -397,5 +406,82 @@ impl App {
                 );
             });
         });
+    }
+
+    fn tutorial_popup(&mut self, ctx: &egui::Context) {
+        let Some(page) = &mut self.tutorial_page else {
+            return;
+        };
+
+        let mut is_tutorial_open = true;
+        egui::Window::new("Tutorial")
+            .open(&mut is_tutorial_open)
+            .fixed_size((250.0, 100.0))
+            .resizable(false)
+            .collapsible(false)
+            .pivot(egui::Align2::RIGHT_BOTTOM)
+            .default_pos(ctx.screen_rect().right_bottom() - egui::Vec2::new(64.0, 64.0))
+            .show(ctx, |ui| {
+                const FIXED_PLANET: Planet = Planet { pos: Vec2::new(279.0, 192.0), vel: Vec2::ZERO, mass: 3.4e4, locked: true, popup_open: false };
+                const ORBITING_PLANET: Planet = Planet { pos: Vec2::new(102.0, 206.0), vel: Vec2::new(0.681, -14.2), mass: 960.0, locked: false, popup_open: false };
+
+                const LAST_PAGE: u8 = 4;
+                *page = (*page).clamp(0, LAST_PAGE); // Make sure the page is a valid value
+                match page {
+                    0 => {
+                        ui.label(egui::RichText::new("You can reopen this tutorial from the Help menu").strong());
+                        ui.label("Welcome! This is a guide to using the simulator. Click the button below to spawn a demo, and press SPACE or the play button (top right) to start the simulation.");
+                        if ui.button("Spawn demo").clicked() {
+                            self.simulation.planets.clear();
+                            self.simulation.planets.push(FIXED_PLANET.as_rc());
+                            self.simulation.planets.push(ORBITING_PLANET.as_rc());
+                            self.simulation.playing = false;
+                        }
+                    }
+                    1 => {
+                        ui.label("Press SPACE or the pause button to pause, and try to move the planets around. Switch to the Move tool in the top bar (or press 2!), and drag a planet to move it.");
+                    }
+                    2 => {
+                        ui.label(egui::RichText::new("Other tools:").strong());
+                        ui.label("Resize planets by dragging with Scale (3)\nAim planets by dragging with Aim (4)\nSpawn planets with New (5)\nDelete planets by clicking with Delete (6)");
+                    }
+                    3 => {
+                        ui.label("The larger planet does not move because its position has been set as locked. Right click on the larger planet to see an info popup, and unselect \"Lock position\" to let it move.");
+                        if ui.button("Reset").clicked() {
+                            self.simulation.planets.clear();
+                            self.simulation.planets.push(FIXED_PLANET.as_rc());
+                            self.simulation.planets.push(ORBITING_PLANET.as_rc());
+                            self.simulation.playing = false;
+                        }
+                    }
+                    4 => {
+                        ui.label("You can use tools from Select mode (1)! Select a planet by clicking on it, then use GSVAX to Move, Scale, Aim, Spawn and Delete. You can left click to confirm a change or press Escape to undo");
+                    }
+                    _ => (),
+                }
+
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Max), |ui| {
+                    // Grey out the right button if on the last page
+                    let right = ui.add_enabled(
+                        *page < LAST_PAGE,
+                        egui::Button::new(egui_material_icons::icons::ICON_ARROW_RIGHT).small(),
+                    );
+                    // Grey out the left button if page is 0
+                    let left = ui.add_enabled(
+                        *page != 0,
+                        egui::Button::new(egui_material_icons::icons::ICON_ARROW_LEFT).small(),
+                    );
+                    if right.clicked() {
+                        *page += 1;
+                    }
+                    if left.clicked() {
+                        *page -= 1;
+                    }
+                })
+            });
+
+        if !is_tutorial_open {
+            self.tutorial_page = None;
+        }
     }
 }
