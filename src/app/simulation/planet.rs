@@ -103,22 +103,28 @@ pub struct Planet {
 
 impl Planet {
     pub fn new(pos: Vec2, mass: f64) -> Rc<RefCell<Self>> {
-        Rc::new(RefCell::new(Self {
+        Self {
             pos,
             vel: Vec2::ZERO,
             mass,
             locked: false,
             popup_open: false,
-        }))
+        }
+        .as_rc()
     }
 
-    // Calculate the radius of the planet
+    /// Return the planet as a reference-counted object
+    pub fn as_rc(&self) -> Rc<RefCell<Self>> {
+        Rc::new(RefCell::new(self.clone()))
+    }
+
+    /// Calculate the radius of the planet
     pub fn radius(&self) -> f64 {
         const PLANET_DESCALE: f64 = 4.0;
         self.mass.sqrt() / PLANET_DESCALE
     }
 
-    // Calculate a vector of the gravitational force towards the other planet
+    /// Calculate a vector of the gravitational force towards the other planet
     pub fn calculate_force_between_planets(&self, other: &Self) -> Vec2 {
         let separation = other.pos - self.pos;
         // # We can calculate d^2 instead of d. This way we don't need to call sqrt()
@@ -132,7 +138,7 @@ impl Planet {
         magnitude * Vec2::new(direction.cos(), direction.sin())
     }
 
-    // Return the resulting planet from a collision between two planets
+    /// Return the resulting planet from a collision between two planets
     pub fn collide_planets(&self, other: &Self) -> Self {
         // m1v1 + m2v2
         let total_initial_momentum = self.mass * self.vel + other.mass * other.vel;

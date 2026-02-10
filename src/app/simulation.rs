@@ -94,7 +94,7 @@ impl Simulation {
                     let combined_planet = self.planets[first]
                         .borrow()
                         .collide_planets(&self.planets[second].borrow());
-                    self.planets[first] = Rc::new(RefCell::new(combined_planet));
+                    self.planets[first] = combined_planet.as_rc();
                     // Mark second planet for deletion
                     planets_to_delete[second] = true;
                 }
