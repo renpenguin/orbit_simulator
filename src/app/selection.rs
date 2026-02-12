@@ -20,6 +20,7 @@ pub enum SelectionMode {
     },
     Aiming {
         original_velocity: Vec2,
+        snap_to_mouse: bool,
     },
 }
 
@@ -43,7 +44,7 @@ impl Selection {
                 original_mass: planet_data.mass,
                 original_distance_sq: (mouse_pos - planet_data.pos).length_sq(),
             },
-            ClickMode::Aim => SelectionMode::Aiming { original_velocity: planet_data.vel },
+            ClickMode::Aim => SelectionMode::Aiming { original_velocity: planet_data.vel, snap_to_mouse: true },
             _ => return Self::None,
         };
 
@@ -101,8 +102,16 @@ impl Selection {
                 planet.mass = *original_mass * scale_ratio;
             }
             // Aim planet
-            SelectionMode::Aiming { original_velocity } => {
-                planet.vel = *original_velocity - (mouse_pos - *initial_mouse_pos) / TRAIL_SCALE;
+            SelectionMode::Aiming {
+                original_velocity,
+                snap_to_mouse,
+            } => {
+                if *snap_to_mouse {
+                    planet.vel = (planet.pos - mouse_pos) / TRAIL_SCALE; // Aim with tool + mouse click
+                } else {
+                    planet.vel =
+                        *original_velocity - (mouse_pos - *initial_mouse_pos) / TRAIL_SCALE; // Aim with Select + V
+                }
             }
         }
     }

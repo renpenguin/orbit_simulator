@@ -225,7 +225,9 @@ impl App {
                         SelectionMode::Scaling { original_mass, .. } => {
                             planet.mass = *original_mass;
                         }
-                        SelectionMode::Aiming { original_velocity } => {
+                        SelectionMode::Aiming {
+                            original_velocity, ..
+                        } => {
                             planet.vel = *original_velocity;
                         }
                     }
@@ -258,6 +260,14 @@ impl App {
         if input_state.key_pressed(egui::Key::V) {
             if let Some(planet) = self.selection.extract_planet() {
                 self.selection = Selection::new(ClickMode::Aim, &planet, mouse_pos);
+                // Disable snap_to_mouse
+                if let Selection::Some {
+                    mode: SelectionMode::Aiming { snap_to_mouse, .. },
+                    ..
+                } = &mut self.selection
+                {
+                    *snap_to_mouse = false;
+                }
             };
         }
         if input_state.key_pressed(egui::Key::A) {
