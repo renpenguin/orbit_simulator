@@ -158,24 +158,6 @@ impl eframe::App for App {
                 }
             });
 
-        egui::Window::new("Pause button")
-            .title_bar(false)
-            .resizable(false)
-            .frame(egui::Frame::NONE)
-            .anchor(egui::Align2::RIGHT_TOP, (0.0, 16.0))
-            .show(ctx, |ui| {
-                let pause_button_label = if self.simulation.playing {
-                    egui_material_icons::icons::ICON_PAUSE
-                } else {
-                    egui_material_icons::icons::ICON_PLAY_ARROW
-                };
-                let button = egui::Button::new(egui::RichText::new(pause_button_label).size(48.0))
-                    .frame(false);
-                if ui.add(button).clicked() {
-                    self.simulation.playing = !self.simulation.playing;
-                }
-            });
-
         ctx.request_repaint_after(Duration::from_secs_f32(1.0 / 60.0));
     }
 }
@@ -406,6 +388,24 @@ impl App {
                 );
             });
         });
+
+        egui::Window::new("Pause button")
+            .title_bar(false)
+            .resizable(false)
+            .frame(egui::Frame::NONE)
+            .anchor(egui::Align2::RIGHT_TOP, (0.0, 16.0))
+            .show(ctx, |ui| {
+                let pause_button_label = if self.simulation.playing {
+                    egui_material_icons::icons::ICON_PAUSE
+                } else {
+                    egui_material_icons::icons::ICON_PLAY_ARROW
+                };
+                let button = egui::Button::new(egui::RichText::new(pause_button_label).size(48.0))
+                    .frame(false);
+                if ui.add(button).clicked() {
+                    self.simulation.playing = !self.simulation.playing;
+                }
+            });
     }
 
     fn tutorial_popup(&mut self, ctx: &egui::Context) {
