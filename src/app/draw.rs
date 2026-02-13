@@ -3,26 +3,37 @@ use std::{cell::RefCell, f32::consts::FRAC_PI_2, rc::Rc};
 
 use crate::app::simulation::{Planet, TRAIL_SCALE};
 
-const SHORTCUTS: [(&str, &str); 18] = [
-    ("Ctrl N", "Create new"),
-    ("Ctrl O", "Open"),
-    ("Ctrl S", "Save"),
-    ("Ctrl Shift S", "Save as"),
-    ("Ctrl +", "Zoom in"),
-    ("Ctrl -", "Zoom out"),
-    ("Ctrl 0", "Reset size"),
-    ("Ctrl /", "Show shortcuts"),
-    ("Space", "Start/stop"),
-    ("1-6", "Select a tool"),
-    ("RMB", "Open popup"),
-    ("Escape", "Cancel edit"),
-    ("Enter", "Confirm edit"),
-    ("G", "Move selected"),
-    ("S", "Scale selected"),
-    ("V", "Aim selected"),
-    ("A", "Spawn new planet"),
-    ("X", "Delete selected"),
-];
+fn shortcuts_section(
+    ui: &mut egui::Ui,
+    title: &str,
+    shortcuts: &[(&str, &str)],
+    window_right_edge: f32,
+) {
+    ui.label(egui::RichText::new(title).heading().strong());
+
+    #[rustfmt::skip]
+    egui::Grid::new(title).spacing(egui::Vec2::splat(8.0)).show(ui, |ui| {
+        for (keybind, description) in shortcuts {
+            let widget_width = ui.horizontal(|ui| {
+                ui.label(
+                    egui::RichText::new(*keybind)
+                        .background_color(egui::Color32::from_rgb(40, 40, 40))
+                        .monospace()
+                        .size(20.0),
+                );
+                ui.label(egui::RichText::new(*description).size(20.0));
+                ui.add_space(8.0);
+            }).response.rect.width();
+
+            // If there is not enough space for another widget, start a new row
+            if ui.cursor().left() + widget_width > window_right_edge {
+                ui.end_row();
+            }
+        }
+    });
+
+    ui.separator();
+}
 
 pub fn shortcuts_screen(ctx: &egui::Context, shortcuts_shown: &mut bool) {
     // Define the size of the shortcuts window to always fill the central panel, with an 8-pixel margin.
@@ -40,21 +51,52 @@ pub fn shortcuts_screen(ctx: &egui::Context, shortcuts_shown: &mut bool) {
         .open(shortcuts_shown)
         .vscroll(true)
         .show(ctx, |ui| {
-            #[rustfmt::skip]
-			egui::Grid::new("shortcuts_cheatsheet").spacing(egui::Vec2::splat(8.0)).show(ui, |ui| {
-				for (shortcut, description) in SHORTCUTS {
-					let widget_width = ui.horizontal(|ui| {
-						ui.label(egui::RichText::new(shortcut).monospace().size(24.0));
-						ui.label(egui::RichText::new(description).size(16.0));
-						ui.add_space(8.0);
-					}).response.rect.width();
-
-					// If there is not enough space for another widget, start a new row
-					if ui.cursor().left() + widget_width > shortcuts_rect.right() {
-						ui.end_row();
-					}
-				}
-			});
+            shortcuts_section(
+                ui,
+                "Miscellaneous",
+                &[
+                    ("Ctrl /", "Shortcuts menu"),
+                    ("RMB", "Context menu"),
+                    ("Space", "Pause/resume"),
+                ],
+                shortcuts_rect.right(),
+            );
+            shortcuts_section(
+                ui,
+                "Editing planets",
+                &[
+                    ("1-6", "Select tool"),
+                    ("G", "Move selected"),
+                    ("S", "Scale selected"),
+                    ("V", "Aim selected"),
+                    ("A", "Spawn planet"),
+                    ("X", "Delete selected"),
+                    ("Escape", "Cancel edit"),
+                    ("Enter", "Confirm edit"),
+                ],
+                shortcuts_rect.right(),
+            );
+            shortcuts_section(
+                ui,
+                "Saving/loading state",
+                &[
+                    ("Ctrl N", "New simulation"),
+                    ("Ctrl O", "Load from file"),
+                    ("Ctrl S", "Save to file"),
+                    ("Ctrl Shift S", "Save as"),
+                ],
+                shortcuts_rect.right(),
+            );
+            shortcuts_section(
+                ui,
+                "UI Scale",
+                &[
+                    ("Ctrl +", "Zoom in"),
+                    ("Ctrl -", "Zoom out"),
+                    ("Ctrl 0", "Reset size"),
+                ],
+                shortcuts_rect.right(),
+            );
         });
 }
 
