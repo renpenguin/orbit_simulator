@@ -10,11 +10,11 @@ use crate::app::{
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum SelectionMode {
-    Selected,
-    Translating {
+    Selecting,
+    Moving {
         original_pos: Vec2,
     },
-    Scaling {
+    Resizing {
         original_mass: f64,
         original_distance_sq: f64,
     },
@@ -38,18 +38,29 @@ impl Selection {
         let planet_data = planet.borrow();
         #[rustfmt::skip]
         let mode = match click_mode {
-            ClickMode::Select => SelectionMode::Selected,
-            ClickMode::Translate => SelectionMode::Translating { original_pos: planet_data.pos },
-            ClickMode::Scale => SelectionMode::Scaling {
+            ClickMode::Select => SelectionMode::Selecting,
+            ClickMode::Move => SelectionMode::Moving { original_pos: planet_data.pos },
+            ClickMode::Resize => SelectionMode::Resizing {
                 original_mass: planet_data.mass,
                 original_distance_sq: (mouse_pos - planet_data.pos).length_sq(),
             },
-            ClickMode::Aim => SelectionMode::Aiming { original_velocity: planet_data.vel, snap_to_mouse: true },
+            ClickMode::Velocity => SelectionMode::Aiming { original_velocity: planet_data.vel, snap_to_mouse: true },
             _ => return Self::None,
         };
 
         Self::Some {
             mode,
+            planet: Rc::downgrade(planet),
+            initial_mouse_pos: mouse_pos,
+        }
+    }
+
+    pub fn new_vel_unsnapped_to_mouse(planet: &Rc<RefCell<Planet>>, mouse_pos: Vec2) -> Self {
+        Self::Some {
+            mode: SelectionMode::Aiming {
+                original_velocity: planet.borrow().vel,
+                snap_to_mouse: false,
+            },
             planet: Rc::downgrade(planet),
             initial_mouse_pos: mouse_pos,
         }
@@ -87,13 +98,13 @@ impl Selection {
 
         match mode {
             // Don't change anything if the planet is only selected
-            SelectionMode::Selected => (),
+            SelectionMode::Selecting => (),
             // Move planet
-            SelectionMode::Translating { original_pos } => {
+            SelectionMode::Moving { original_pos } => {
                 planet.pos = *original_pos + mouse_pos - *initial_mouse_pos;
             }
-            // Scale planet
-            SelectionMode::Scaling {
+            // Resize planet
+            SelectionMode::Resizing {
                 original_mass,
                 original_distance_sq,
             } => {
@@ -107,10 +118,12 @@ impl Selection {
                 snap_to_mouse,
             } => {
                 if *snap_to_mouse {
-                    planet.vel = (planet.pos - mouse_pos) / TRAIL_SCALE; // Aim with tool + mouse click
+                    // Aim with tool + mouse click
+                    planet.vel = (planet.pos - mouse_pos) / TRAIL_SCALE;
                 } else {
+                    // Aim with Select + V
                     planet.vel =
-                        *original_velocity - (mouse_pos - *initial_mouse_pos) / TRAIL_SCALE; // Aim with Select + V
+                        *original_velocity - (mouse_pos - *initial_mouse_pos) / TRAIL_SCALE;
                 }
             }
         }

@@ -12,10 +12,10 @@ use simulation::{Planet, Simulation, Vec2};
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ClickMode {
     Select,
-    Translate,
-    Scale,
-    Aim,
-    Spawn,
+    Move,
+    Resize,
+    Velocity,
+    Insert,
     Delete,
 }
 
@@ -146,7 +146,7 @@ impl eframe::App for App {
                 }
 
                 // Selection indicator
-                if [ClickMode::Select, ClickMode::Spawn].contains(&self.click_mode)
+                if [ClickMode::Select, ClickMode::Insert].contains(&self.click_mode)
                     && let Some(planet) = self.selection.extract_planet()
                 {
                     let planet = planet.borrow();
@@ -191,8 +191,8 @@ impl App {
                 self.simulation.playing = !self.simulation.playing;
             }
 
-            // ____X to delete the currently selected planet
-            egui::Key::X => {
+            // ____D to delete the currently selected planet
+            egui::Key::D => {
                 let Some(planet_to_delete) = self.selection.extract_planet() else {
                     return;
                 };
@@ -210,10 +210,10 @@ impl App {
 
             // 1..=6 number keys to set clickmode
             egui::Key::Num1 => self.click_mode = ClickMode::Select,
-            egui::Key::Num2 => self.click_mode = ClickMode::Translate,
-            egui::Key::Num3 => self.click_mode = ClickMode::Scale,
-            egui::Key::Num4 => self.click_mode = ClickMode::Aim,
-            egui::Key::Num5 => self.click_mode = ClickMode::Spawn,
+            egui::Key::Num2 => self.click_mode = ClickMode::Move,
+            egui::Key::Num3 => self.click_mode = ClickMode::Resize,
+            egui::Key::Num4 => self.click_mode = ClickMode::Velocity,
+            egui::Key::Num5 => self.click_mode = ClickMode::Insert,
             egui::Key::Num6 => self.click_mode = ClickMode::Delete,
 
             // Cancel operation
@@ -225,11 +225,11 @@ impl App {
                     };
                     let mut planet = planet.borrow_mut();
                     match mode {
-                        SelectionMode::Selected => (),
-                        SelectionMode::Translating { original_pos } => {
+                        SelectionMode::Selecting => (),
+                        SelectionMode::Moving { original_pos } => {
                             planet.pos = *original_pos;
                         }
-                        SelectionMode::Scaling { original_mass, .. } => {
+                        SelectionMode::Resizing { original_mass, .. } => {
                             planet.mass = *original_mass;
                         }
                         SelectionMode::Aiming {
@@ -238,7 +238,7 @@ impl App {
                             planet.vel = *original_velocity;
                         }
                     }
-                    *mode = SelectionMode::Selected;
+                    *mode = SelectionMode::Selecting;
                 }
             }
 
@@ -252,32 +252,24 @@ impl App {
             return;
         }
 
-        // GSVA_
-        // For GSV, only continue if there is a selection and the planet exists. Any old selection will be overwritten, confirming the old operation
-        if input_state.key_pressed(egui::Key::G) {
+        // MRVI_
+        // For MRV, only continue if there is a selection and the planet exists. Any old selection will be overwritten, confirming the old operation
+        if input_state.key_pressed(egui::Key::M) {
             if let Some(planet) = self.selection.extract_planet() {
-                self.selection = Selection::new(ClickMode::Translate, &planet, mouse_pos);
+                self.selection = Selection::new(ClickMode::Move, &planet, mouse_pos);
             };
         }
-        if input_state.key_pressed(egui::Key::S) {
+        if input_state.key_pressed(egui::Key::R) {
             if let Some(planet) = self.selection.extract_planet() {
-                self.selection = Selection::new(ClickMode::Scale, &planet, mouse_pos);
+                self.selection = Selection::new(ClickMode::Resize, &planet, mouse_pos);
             };
         }
         if input_state.key_pressed(egui::Key::V) {
             if let Some(planet) = self.selection.extract_planet() {
-                self.selection = Selection::new(ClickMode::Aim, &planet, mouse_pos);
-                // Disable snap_to_mouse
-                if let Selection::Some {
-                    mode: SelectionMode::Aiming { snap_to_mouse, .. },
-                    ..
-                } = &mut self.selection
-                {
-                    *snap_to_mouse = false;
-                }
+                self.selection = Selection::new_vel_unsnapped_to_mouse(&planet, mouse_pos);
             };
         }
-        if input_state.key_pressed(egui::Key::A) {
+        if input_state.key_pressed(egui::Key::I) {
             // Create and select a new planet
             let planet = Planet::new(mouse_pos, 960.0);
             self.selection = Selection::new(ClickMode::Select, &planet, mouse_pos);
@@ -285,7 +277,7 @@ impl App {
         }
 
         if input_state.key_pressed(egui::Key::Enter) {
-            // Overwrites previous operation, confirming it. Akin to GSV
+            // Overwrites previous operation, confirming it. Akin to MRV
             if let Some(planet) = self.selection.extract_planet() {
                 self.selection = Selection::new(ClickMode::Select, &planet, mouse_pos);
             };
@@ -297,8 +289,8 @@ impl App {
         if mouse_state.primary_pressed() {
             // If an operation is in progress, confirm it and don't attempt to select a new planet
             if let Selection::Some { mode, .. } = &mut self.selection {
-                if *mode != SelectionMode::Selected {
-                    *mode = SelectionMode::Selected;
+                if *mode != SelectionMode::Selecting {
+                    *mode = SelectionMode::Selecting;
                     return;
                 }
             }
@@ -306,7 +298,7 @@ impl App {
             let clicked_planet = self.simulation.try_find_planet_at_pos(mouse_pos);
 
             match self.click_mode {
-                ClickMode::Spawn => {
+                ClickMode::Insert => {
                     // Create and select a new planet
                     let new_planet = Planet::new(mouse_pos, 960.0);
                     self.selection = Selection::new(ClickMode::Select, &new_planet, mouse_pos);
@@ -332,7 +324,7 @@ impl App {
         // Complete operation if mouse released, selection exists and is not "Selected"
         if mouse_state.primary_released()
             && let Selection::Some { mode, .. } = &self.selection
-            && *mode != SelectionMode::Selected
+            && *mode != SelectionMode::Selecting
         {
             self.selection = Selection::None;
         }
@@ -384,10 +376,10 @@ impl App {
                 ui.add_space(20.0);
 
                 ui.selectable_value(&mut self.click_mode, ClickMode::Select, "1. Select");
-                ui.selectable_value(&mut self.click_mode, ClickMode::Translate, "2. Move");
-                ui.selectable_value(&mut self.click_mode, ClickMode::Scale, "3. Scale");
-                ui.selectable_value(&mut self.click_mode, ClickMode::Aim, "4. Aim");
-                ui.selectable_value(&mut self.click_mode, ClickMode::Spawn, "5. New");
+                ui.selectable_value(&mut self.click_mode, ClickMode::Move, "2. Move");
+                ui.selectable_value(&mut self.click_mode, ClickMode::Resize, "3. Resize");
+                ui.selectable_value(&mut self.click_mode, ClickMode::Velocity, "4. Velocity");
+                ui.selectable_value(&mut self.click_mode, ClickMode::Insert, "5. Insert");
                 ui.selectable_value(&mut self.click_mode, ClickMode::Delete, "6. Delete");
 
                 ui.add_space(20.0);
@@ -440,8 +432,8 @@ impl App {
                 match page {
                     0 => {
                         ui.label(egui::RichText::new("You can reopen this tutorial from the Help menu").strong());
-                        ui.label("Welcome! This is a guide to using the simulator. Click the button below to spawn a demo, and press SPACE or the play button (top right) to start the simulation.");
-                        if ui.button("Spawn demo").clicked() {
+                        ui.label("Welcome! This is a guide to using the simulator. Click the button below to load a demo, and press SPACE or the play button (top right) to start the simulation.");
+                        if ui.button("Load demo").clicked() {
                             self.simulation.planets.clear();
                             self.simulation.planets.push(FIXED_PLANET.as_rc());
                             self.simulation.planets.push(ORBITING_PLANET.as_rc());
@@ -453,7 +445,7 @@ impl App {
                     }
                     2 => {
                         ui.label(egui::RichText::new("Other tools:").strong());
-                        ui.label("Resize planets by dragging with Scale (3)\nAim planets by dragging with Aim (4)\nSpawn planets with New (5)\nDelete planets by clicking with Delete (6)");
+                        ui.label("Resize planets by dragging with Resize (3)\nAim planets by dragging with Velocity (4)\nInsert planets with Insert (5)\nDelete planets by clicking with Delete (6)");
                     }
                     3 => {
                         ui.label("The larger planet does not move because its position has been set as locked. Right click on the larger planet to see an info popup, and unselect \"Lock position\" to let it move.");
@@ -465,7 +457,7 @@ impl App {
                         }
                     }
                     4 => {
-                        ui.label("You can use tools from Select mode (1)! Select a planet by clicking on it, then use GSVAX to Move, Scale, Aim, Spawn and Delete. You can left click to confirm a change or press Escape to undo");
+                        ui.label("You can use tools from Select mode (1)! Select a planet by clicking on it, then use MRVID to Move, Resize, set Velocity of, Insert and Delete planets. You can left click to confirm a change or press Escape to undo");
                     }
                     _ => (),
                 }
@@ -509,11 +501,11 @@ impl App {
             }
 
             ui.selectable_value(&mut self.click_mode, ClickMode::Select, "Select");
-            ui.selectable_value(&mut self.click_mode, ClickMode::Translate, "Move");
-            ui.selectable_value(&mut self.click_mode, ClickMode::Scale, "Scale");
-            ui.selectable_value(&mut self.click_mode, ClickMode::Aim, "Aim");
+            ui.selectable_value(&mut self.click_mode, ClickMode::Move, "Move");
+            ui.selectable_value(&mut self.click_mode, ClickMode::Resize, "Resize");
+            ui.selectable_value(&mut self.click_mode, ClickMode::Velocity, "Velocity");
 
-            if ui.button("New").clicked() {
+            if ui.button("Insert").clicked() {
                 let new_planet = Planet::new(click_pos, 960.0);
                 self.selection = Selection::new(ClickMode::Select, &new_planet, click_pos);
                 self.simulation.planets.push(new_planet);
