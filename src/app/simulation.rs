@@ -1,10 +1,10 @@
-mod planet;
 use std::{
     cell::{Ref, RefCell},
     rc::Rc,
 };
 
-pub use planet::{Planet, TRAIL_SCALE, Vec2};
+mod planet;
+pub use planet::{Planet, TRAIL_SCALE, Vec2, get_planet_name_from_index};
 
 #[derive(Debug)]
 pub struct Simulation {

@@ -9,6 +9,24 @@ use egui::Pos2;
 const G: f64 = 1.0; // Change later to 6.67e-11
 pub const TRAIL_SCALE: f64 = 8.0;
 
+pub fn get_planet_name_from_index(idx: usize) -> String {
+    const NAMES_LEN: usize = 18;
+    const NAMES: [&str; NAMES_LEN] = [
+        "Alpha", "Beta", "Gamma", "Delta", "Epsilon", "Zeta", "Eta", "Theta", "Iota", "Kappa",
+        "Lambda", "Mu", "Xi", "Omicron", "Rho", "Sigma", "Tau", "Omega",
+    ];
+
+    let mut name = String::from(NAMES[idx % NAMES_LEN]);
+
+    let repeat = idx / NAMES_LEN;
+    if repeat > 0 {
+        name.push(' ');
+        name.push_str(&repeat.to_string());
+    }
+
+    name
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Vec2 {
     pub x: f64,

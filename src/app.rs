@@ -89,8 +89,9 @@ impl eframe::App for App {
         draw::shortcuts_screen(ctx, &mut self.shortcuts_shown);
 
         // Draw popups
-        for planet_ref in &self.simulation.planets {
-            draw::planet_popup(ctx, planet_ref);
+        for (planet_idx, planet_ref) in self.simulation.planets.iter().enumerate() {
+            let planet_name = simulation::get_planet_name_from_index(planet_idx);
+            draw::planet_popup(ctx, planet_ref, &planet_name);
         }
 
         self.tutorial_popup(ctx);
@@ -137,11 +138,13 @@ impl eframe::App for App {
                 self.handle_context_menu(&response);
 
                 // Draw planets
-                for planet in self.simulation.get_planets() {
+                for (planet_idx, planet) in self.simulation.get_planets().enumerate() {
+                    let planet_name = simulation::get_planet_name_from_index(planet_idx);
                     draw::planet(
                         &painter,
                         &planet,
                         to_screen.transform_pos(planet.pos.into()),
+                        &planet_name,
                     );
                 }
 

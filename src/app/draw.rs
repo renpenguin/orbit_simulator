@@ -1,7 +1,7 @@
 use egui::{Color32, Pos2};
 use std::{cell::RefCell, f32::consts::FRAC_PI_2, rc::Rc};
 
-use crate::app::simulation::{Planet, TRAIL_SCALE};
+use crate::app::simulation::{Planet, TRAIL_SCALE, Vec2};
 
 fn shortcuts_section(
     ui: &mut egui::Ui,
@@ -100,10 +100,18 @@ pub fn shortcuts_screen(ctx: &egui::Context, shortcuts_shown: &mut bool) {
         });
 }
 
-pub fn planet(painter: &egui::Painter, planet: &Planet, screen_position: Pos2) {
+pub fn planet(painter: &egui::Painter, planet: &Planet, screen_position: Pos2, planet_name: &str) {
     let radius = planet.radius() as f32;
 
     painter.circle_filled(screen_position, radius, Color32::WHITE);
+
+    painter.text(
+        screen_position - egui::Vec2::new(0.0, radius + 8.0),
+        egui::Align2::CENTER_BOTTOM,
+        planet_name,
+        egui::FontId::proportional(8.0),
+        Color32::GRAY,
+    );
 
     let angle = planet.vel.y.atan2(planet.vel.x) as f32;
     let side_offset = radius * egui::Vec2::angled(angle + FRAC_PI_2);
@@ -123,7 +131,7 @@ pub fn planet(painter: &egui::Painter, planet: &Planet, screen_position: Pos2) {
     );
 }
 
-pub fn planet_popup(ctx: &egui::Context, planet_ref: &Rc<RefCell<Planet>>) {
+pub fn planet_popup(ctx: &egui::Context, planet_ref: &Rc<RefCell<Planet>>, planet_name: &str) {
     let mut planet = planet_ref.borrow_mut();
 
     // Skip if planet popup should not be visible
@@ -136,7 +144,7 @@ pub fn planet_popup(ctx: &egui::Context, planet_ref: &Rc<RefCell<Planet>>) {
     let planet_id = planet_ref.as_ptr().addr().to_string().into();
 
     // Draw popup fields
-    egui::Window::new("Planet info")
+    egui::Window::new(format!("{planet_name} info"))
         .id(planet_id)
         .open(&mut is_open)
         .show(ctx, |ui| {
