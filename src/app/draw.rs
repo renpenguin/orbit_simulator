@@ -1,5 +1,5 @@
 use egui::{Color32, Pos2};
-use std::{cell::RefCell, f32::consts::FRAC_PI_2, rc::Rc};
+use std::{cell::RefCell, rc::Rc};
 
 use crate::app::simulation::{Planet, TRAIL_SCALE, Vec2};
 
@@ -113,12 +113,15 @@ pub fn planet(painter: &egui::Painter, planet: &Planet, screen_position: Pos2, p
         Color32::GRAY,
     );
 
-    let angle = planet.vel.y.atan2(planet.vel.x) as f32;
-    let side_offset = radius * egui::Vec2::angled(angle + FRAC_PI_2);
-
     if planet.locked {
         return;
     }
+
+    let side_offset = if planet.vel == Vec2::ZERO {
+        egui::Vec2::new(radius, 0.0)
+    } else {
+        radius * egui::Vec2::from(planet.vel).normalized().rot90()
+    };
 
     painter.line(
         vec![

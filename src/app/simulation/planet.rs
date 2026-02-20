@@ -167,12 +167,14 @@ impl Planet {
         let threshold_distance = self.radius() + other.radius();
         let separation_ratio = other.radius() / threshold_distance;
 
+        let larger = if self.mass > other.mass { self } else { other };
+
         Self {
             pos: self.pos + separation_ratio * separation,
             vel: total_initial_momentum / mass, // Combined velocity based on combining masses
             mass,
-            locked: self.locked || other.locked,
-            popup_open: self.popup_open || other.popup_open,
+            locked: larger.locked,
+            popup_open: larger.popup_open,
         }
     }
 }
