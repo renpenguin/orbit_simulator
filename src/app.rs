@@ -488,6 +488,8 @@ impl App {
                         *page += 1;
                     }
 
+                    ui.label(format!("Page {}/{}", *page + 1, LAST_PAGE + 1));
+
                     // Grey out the left button if on first page
                     let left = ui.add_enabled(
                         *page != 0,
