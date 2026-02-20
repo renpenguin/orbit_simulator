@@ -45,8 +45,9 @@ pub struct App {
     tutorial_page: Option<u8>,
 
     selection: Selection,
-
     simulation: Simulation,
+
+    last_right_click_pos: Vec2,
     last_draw: Instant,
 }
 
@@ -67,6 +68,7 @@ impl App {
             tutorial_page: Some(0),
             selection: Selection::None,
             simulation: Simulation::default(),
+            last_right_click_pos: Vec2::ZERO,
             last_draw: Instant::now(),
         }
     }
@@ -125,9 +127,14 @@ impl eframe::App for App {
 
                             self.handle_sim_mouse_input(&input_state.pointer, mouse_pos);
                             self.handle_selection_shortcut(input_state, mouse_pos);
+
+                            if input_state.pointer.secondary_clicked() {
+                                self.last_right_click_pos = mouse_pos;
+                            }
                         }
                     });
                 }
+                self.handle_context_menu(&response);
 
                 // Draw planets
                 for planet in self.simulation.get_planets() {
@@ -330,13 +337,6 @@ impl App {
             self.selection = Selection::None;
         }
 
-        if mouse_state.secondary_pressed() {
-            if let Some(planet_idx) = self.simulation.try_find_planet_at_pos(mouse_pos) {
-                let mut planet = self.simulation.planets[planet_idx].borrow_mut();
-                planet.popup_open = !planet.popup_open;
-            }
-        }
-
         self.selection.mouse_motion(mouse_pos);
     }
 
@@ -493,5 +493,37 @@ impl App {
         if !is_tutorial_open {
             self.tutorial_page = None;
         }
+    }
+
+    fn handle_context_menu(&mut self, response: &egui::Response) {
+        response.context_menu(|ui| {
+            let click_pos = self.last_right_click_pos;
+            let planet_under_mouse = self.simulation.try_find_planet_at_pos(click_pos);
+            if let Some(planet_idx) = planet_under_mouse {
+                let nowrap_button =
+                    egui::Button::new("Planet info").wrap_mode(egui::TextWrapMode::Extend);
+                if ui.add(nowrap_button).clicked() {
+                    let mut planet = self.simulation.planets[planet_idx].borrow_mut();
+                    planet.popup_open = !planet.popup_open;
+                }
+            }
+
+            ui.selectable_value(&mut self.click_mode, ClickMode::Select, "Select");
+            ui.selectable_value(&mut self.click_mode, ClickMode::Translate, "Move");
+            ui.selectable_value(&mut self.click_mode, ClickMode::Scale, "Scale");
+            ui.selectable_value(&mut self.click_mode, ClickMode::Aim, "Aim");
+
+            if ui.button("New").clicked() {
+                let new_planet = Planet::new(click_pos, 960.0);
+                self.selection = Selection::new(ClickMode::Select, &new_planet, click_pos);
+                self.simulation.planets.push(new_planet);
+            }
+
+            if let Some(planet_idx) = planet_under_mouse {
+                if ui.button("Delete").clicked() {
+                    self.simulation.planets.swap_remove(planet_idx);
+                }
+            }
+        });
     }
 }
