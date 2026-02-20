@@ -164,7 +164,10 @@ pub fn planet_popup(ctx: &egui::Context, planet_ref: &Rc<RefCell<Planet>>, plane
                 ui.end_row();
 
                 ui.label("Lock position");
-                ui.checkbox(&mut planet.locked, "");
+                ui.checkbox(&mut planet.locked, "")
+                    .on_hover_text_at_pointer(
+                        "Lock the planet in one place, forcing it to have a velocity of 0",
+                    );
             });
         });
 

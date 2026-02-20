@@ -339,13 +339,13 @@ impl App {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             egui::MenuBar::new().ui(ui, |ui| {
                 ui.menu_button("File", |ui| {
-                    if ui.button("New").clicked() {
+                    if ui.button("New simulation").clicked() {
                         self.simulation = Simulation::default();
                     }
-                    if ui.button("Load").clicked() {
+                    if ui.button("Load from file").clicked() {
                         println!("Load a world from a file");
                     }
-                    if ui.button("Save").clicked() {
+                    if ui.button("Save to file").clicked() {
                         println!("Save the world to a file");
                     }
 
@@ -359,31 +359,40 @@ impl App {
                 });
 
                 ui.menu_button("Tools", |ui| {
-                    if ui.button("Kepler's 2nd Law").clicked() {
+                    if ui.button("Kepler's 2nd Law")
+                        .on_hover_text_at_pointer("Show a visualisation of Kepler's 2nd Law when there are only two planets and one is stationary")
+                        .clicked()
+                    {
                         println!("Start a new world");
                     }
-                    if ui.button("Show forces action planets").clicked() {
+                    if ui.button("Show forces acting on planets").clicked() {
                         println!("Load a world from a file");
                     }
                 });
 
                 ui.menu_button("Help", |ui| {
-                    if ui.button("Tutorial").clicked() {
+                    if ui.button("Tutorial").on_hover_text_at_pointer("Show the tutorial again").clicked() {
                         self.tutorial_page = self.tutorial_page.map_or(Some(0), |_| None);
                     }
-                    if ui.button("Shortcuts").clicked() {
+                    if ui.button("Shortcuts").on_hover_text_at_pointer("Show shortcuts screen").clicked() {
                         self.shortcuts_shown = !self.shortcuts_shown;
                     }
                 });
 
                 ui.add_space(20.0);
 
-                ui.selectable_value(&mut self.click_mode, ClickMode::Select, "1. Select");
-                ui.selectable_value(&mut self.click_mode, ClickMode::Move, "2. Move");
-                ui.selectable_value(&mut self.click_mode, ClickMode::Resize, "3. Resize");
-                ui.selectable_value(&mut self.click_mode, ClickMode::Velocity, "4. Velocity");
-                ui.selectable_value(&mut self.click_mode, ClickMode::Insert, "5. Insert");
-                ui.selectable_value(&mut self.click_mode, ClickMode::Delete, "6. Delete");
+                ui.selectable_value(&mut self.click_mode, ClickMode::Select, "1. Select")
+                    .on_hover_text_at_pointer("Use the Select tool. Click on a planet to select it, then edit it using keyboard shortcuts (see the Help menu for shortcuts)");
+                ui.selectable_value(&mut self.click_mode, ClickMode::Move, "2. Move")
+                    .on_hover_text_at_pointer("Use the Move tool. Drag a planet to move it");
+                ui.selectable_value(&mut self.click_mode, ClickMode::Resize, "3. Resize")
+                    .on_hover_text_at_pointer("Use the Move tool. Grab the edge of a planet and drag to resize it");
+                ui.selectable_value(&mut self.click_mode, ClickMode::Velocity, "4. Velocity")
+                    .on_hover_text_at_pointer("Use the Move tool. Click and drag a planet or its tail to adjust its speed and direction of motion");
+                ui.selectable_value(&mut self.click_mode, ClickMode::Insert, "5. Insert")
+                    .on_hover_text_at_pointer("Use the Insert tool. Click in the simulation space to spawn a planet");
+                ui.selectable_value(&mut self.click_mode, ClickMode::Delete, "6. Delete")
+                    .on_hover_text_at_pointer("Use the Delete tool. Click on a planet to delete it");
 
                 ui.add_space(20.0);
 
@@ -407,7 +416,11 @@ impl App {
                 };
                 let button = egui::Button::new(egui::RichText::new(pause_button_label).size(48.0))
                     .frame(false);
-                if ui.add(button).clicked() {
+                if ui
+                    .add(button)
+                    .on_hover_text_at_pointer("Click to start/pause the simulation")
+                    .clicked()
+                {
                     self.simulation.playing = !self.simulation.playing;
                 }
             });
@@ -436,7 +449,7 @@ impl App {
                     0 => {
                         ui.label(egui::RichText::new("You can reopen this tutorial from the Help menu").strong());
                         ui.label("Welcome! This is a guide to using the simulator. Click the button below to load a demo, and press SPACE or the play button (top right) to start the simulation.");
-                        if ui.button("Load demo").clicked() {
+                        if ui.button("Load demo").on_hover_text_at_pointer("Load a ready-to-go sun-planet setup").clicked() {
                             self.simulation.planets.clear();
                             self.simulation.planets.push(FIXED_PLANET.as_rc());
                             self.simulation.planets.push(ORBITING_PLANET.as_rc());
@@ -444,15 +457,15 @@ impl App {
                         }
                     }
                     1 => {
-                        ui.label("Press SPACE or the pause button to pause, and try to move the planets around. Switch to the Move tool in the top bar (or press 2!), and drag a planet to move it.");
+                        ui.label("Press SPACE or the pause button to pause, and try to move the planets around by switching to the Move tool in the top bar (or press the 2 key!), and drag a planet to move it.");
                     }
                     2 => {
                         ui.label(egui::RichText::new("Other tools:").strong());
                         ui.label("Resize planets by dragging with Resize (3)\nAim planets by dragging with Velocity (4)\nInsert planets with Insert (5)\nDelete planets by clicking with Delete (6)");
                     }
                     3 => {
-                        ui.label("The larger planet does not move because its position has been set as locked. Right click on the larger planet to see an info popup, and unselect \"Lock position\" to let it move.");
-                        if ui.button("Reset").clicked() {
+                        ui.label("The larger planet does not move because its position has been set as locked. Right click on the larger planet, then select \"Planet Info\" to see an info popup, and unselect \"Lock position\" to let it move.");
+                        if ui.button("Reset").on_hover_text_at_pointer("Reload the ready-to-go sun-planet setup").clicked() {
                             self.simulation.planets.clear();
                             self.simulation.planets.push(FIXED_PLANET.as_rc());
                             self.simulation.planets.push(ORBITING_PLANET.as_rc());
@@ -470,15 +483,16 @@ impl App {
                     let right = ui.add_enabled(
                         *page < LAST_PAGE,
                         egui::Button::new(egui_material_icons::icons::ICON_ARROW_RIGHT).small(),
-                    );
-                    // Grey out the left button if page is 0
-                    let left = ui.add_enabled(
-                        *page != 0,
-                        egui::Button::new(egui_material_icons::icons::ICON_ARROW_LEFT).small(),
-                    );
+                    ).on_hover_text_at_pointer("Go to next page");
                     if right.clicked() {
                         *page += 1;
                     }
+
+                    // Grey out the left button if on first page
+                    let left = ui.add_enabled(
+                        *page != 0,
+                        egui::Button::new(egui_material_icons::icons::ICON_ARROW_LEFT).small(),
+                    ).on_hover_text_at_pointer("Go to previous page");
                     if left.clicked() {
                         *page -= 1;
                     }
@@ -497,25 +511,30 @@ impl App {
             if let Some(planet_idx) = planet_under_mouse {
                 let nowrap_button =
                     egui::Button::new("Planet info").wrap_mode(egui::TextWrapMode::Extend);
-                if ui.add(nowrap_button).clicked() {
+                if ui.add(nowrap_button)
+                    .on_hover_text_at_pointer("Show a floating window containing information about the planet").clicked() {
                     let mut planet = self.simulation.planets[planet_idx].borrow_mut();
                     planet.popup_open = !planet.popup_open;
                 }
             }
 
-            ui.selectable_value(&mut self.click_mode, ClickMode::Select, "Select");
-            ui.selectable_value(&mut self.click_mode, ClickMode::Move, "Move");
-            ui.selectable_value(&mut self.click_mode, ClickMode::Resize, "Resize");
-            ui.selectable_value(&mut self.click_mode, ClickMode::Velocity, "Velocity");
+            ui.selectable_value(&mut self.click_mode, ClickMode::Select, "Select")
+                .on_hover_text_at_pointer("Use the Select tool. Click on a planet to select it, then edit it using keyboard shortcuts (see the Help menu for shortcuts)");
+            ui.selectable_value(&mut self.click_mode, ClickMode::Move, "Move")
+                .on_hover_text_at_pointer("Use the Move tool. Drag a planet to move it");
+            ui.selectable_value(&mut self.click_mode, ClickMode::Resize, "Resize")
+                .on_hover_text_at_pointer("Use the Move tool. Grab the edge of a planet and drag to resize it");
+            ui.selectable_value(&mut self.click_mode, ClickMode::Velocity, "Velocity")
+                .on_hover_text_at_pointer("Use the Move tool. Click and drag a planet or its tail to adjust its speed and direction of motion");
 
-            if ui.button("Insert").clicked() {
+            if ui.button("Insert").on_hover_text_at_pointer("Insert a planet where the simulation space was right-clicked").clicked() {
                 let new_planet = Planet::new(click_pos, 960.0);
                 self.selection = Selection::new(ClickMode::Select, &new_planet, click_pos);
                 self.simulation.planets.push(new_planet);
             }
 
             if let Some(planet_idx) = planet_under_mouse {
-                if ui.button("Delete").clicked() {
+                if ui.button("Delete").on_hover_text_at_pointer("Delete the hovered planet").clicked() {
                     self.simulation.planets.swap_remove(planet_idx);
                 }
             }
