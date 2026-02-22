@@ -149,6 +149,7 @@ pub fn planet_popup(ctx: &egui::Context, planet_ref: &Rc<RefCell<Planet>>, plane
     // Draw popup fields
     egui::Window::new(format!("{planet_name} info"))
         .id(planet_id)
+        .resizable(false)
         .open(&mut is_open)
         .show(ctx, |ui| {
             egui::Grid::new(planet_id).show(ui, |ui| {
@@ -160,6 +161,21 @@ pub fn planet_popup(ctx: &egui::Context, planet_ref: &Rc<RefCell<Planet>>, plane
                 ui.label("Velocity");
                 ui.add(egui::DragValue::new(&mut planet.vel.x));
                 ui.add(egui::DragValue::new(&mut planet.vel.y));
+                ui.end_row();
+
+                ui.label("Speed");
+                let mut speed = planet.vel.length_sq().sqrt();
+                ui.add_enabled(
+                    speed != 0.0,
+                    egui::DragValue::from_get_set(|set_value| {
+                        if let Some(value) = set_value {
+                            planet.vel = (value / speed) * planet.vel;
+                            speed = value;
+                        }
+                        speed
+                    })
+                    .range(0.0..=f64::MAX),
+                );
                 ui.end_row();
 
                 ui.label("Mass");
