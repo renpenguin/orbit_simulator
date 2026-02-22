@@ -7,7 +7,7 @@ mod selection;
 use selection::{Selection, SelectionMode};
 
 mod simulation;
-use simulation::{Planet, Simulation, Vec2};
+use simulation::{Planet, Simulation, TRAIL_SCALE, Vec2};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ClickMode {
@@ -220,8 +220,14 @@ impl App {
             // 1..=6 number keys to set clickmode
             egui::Key::Num1 => self.click_mode = ClickMode::Select,
             egui::Key::Num2 => self.click_mode = ClickMode::Move,
-            egui::Key::Num3 => self.click_mode = ClickMode::Resize,
-            egui::Key::Num4 => self.click_mode = ClickMode::Velocity,
+            egui::Key::Num3 => {
+                self.click_mode = ClickMode::Resize;
+                self.simulation.playing = false; // Pause program when aiming or resizing
+            }
+            egui::Key::Num4 => {
+                self.click_mode = ClickMode::Velocity;
+                self.simulation.playing = false; // Pause program when aiming or resizing
+            }
             egui::Key::Num5 => self.click_mode = ClickMode::Insert,
             egui::Key::Num6 => self.click_mode = ClickMode::Delete,
 
@@ -271,11 +277,13 @@ impl App {
         if input_state.key_pressed(egui::Key::R) {
             if let Some(planet) = self.selection.extract_planet() {
                 self.selection = Selection::new(ClickMode::Resize, &planet, mouse_pos);
+                self.simulation.playing = false; // Pause program when aiming or resizing
             };
         }
         if input_state.key_pressed(egui::Key::V) {
             if let Some(planet) = self.selection.extract_planet() {
                 self.selection = Selection::new_vel_unsnapped_to_mouse(&planet, mouse_pos);
+                self.simulation.playing = false; // Pause program when aiming or resizing
             };
         }
         if input_state.key_pressed(egui::Key::I) {
@@ -405,10 +413,15 @@ impl App {
                     .on_hover_text_at_pointer("Use the Select tool. Click on a planet to select it, then edit it using keyboard shortcuts (see the Help menu for shortcuts)");
                 ui.selectable_value(&mut self.click_mode, ClickMode::Move, "2. Move")
                     .on_hover_text_at_pointer("Use the Move tool. Drag a planet to move it");
-                ui.selectable_value(&mut self.click_mode, ClickMode::Resize, "3. Resize")
+
+                let resize_button = ui.selectable_value(&mut self.click_mode, ClickMode::Resize, "3. Resize")
                     .on_hover_text_at_pointer("Use the Move tool. Grab the edge of a planet and drag to resize it");
-                ui.selectable_value(&mut self.click_mode, ClickMode::Velocity, "4. Velocity")
+                let velocity_button = ui.selectable_value(&mut self.click_mode, ClickMode::Velocity, "4. Velocity")
                     .on_hover_text_at_pointer("Use the Move tool. Click and drag a planet or its tail to adjust its speed and direction of motion");
+                if resize_button.clicked() || velocity_button.clicked() {
+                    self.simulation.playing = false; // Pause program when aiming or resizing
+                }
+
                 ui.selectable_value(&mut self.click_mode, ClickMode::Insert, "5. Insert")
                     .on_hover_text_at_pointer("Use the Insert tool. Click in the simulation space to spawn a planet");
                 ui.selectable_value(&mut self.click_mode, ClickMode::Delete, "6. Delete")
@@ -544,10 +557,14 @@ impl App {
                 .on_hover_text_at_pointer("Use the Select tool. Click on a planet to select it, then edit it using keyboard shortcuts (see the Help menu for shortcuts)");
             ui.selectable_value(&mut self.click_mode, ClickMode::Move, "Move")
                 .on_hover_text_at_pointer("Use the Move tool. Drag a planet to move it");
-            ui.selectable_value(&mut self.click_mode, ClickMode::Resize, "Resize")
+
+            let resize_button = ui.selectable_value(&mut self.click_mode, ClickMode::Resize, "Resize")
                 .on_hover_text_at_pointer("Use the Move tool. Grab the edge of a planet and drag to resize it");
-            ui.selectable_value(&mut self.click_mode, ClickMode::Velocity, "Velocity")
+            let velocity_button = ui.selectable_value(&mut self.click_mode, ClickMode::Velocity, "Velocity")
                 .on_hover_text_at_pointer("Use the Move tool. Click and drag a planet or its tail to adjust its speed and direction of motion");
+            if resize_button.clicked() || velocity_button.clicked() {
+                self.simulation.playing = false; // Pause program when aiming or resizing
+            }
 
             if ui.button("Insert").on_hover_text_at_pointer("Insert a planet where the simulation space was right-clicked").clicked() {
                 let new_planet = Planet::new(click_pos, 960.0);
