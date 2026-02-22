@@ -140,12 +140,18 @@ impl eframe::App for App {
                 // Draw planets
                 for (planet_idx, planet) in self.simulation.get_planets().enumerate() {
                     let planet_name = simulation::get_planet_name_from_index(planet_idx);
-                    draw::planet(
-                        &painter,
-                        &planet,
-                        to_screen.transform_pos(planet.pos.into()),
-                        &planet_name,
-                    );
+                    let screen_pos = to_screen.transform_pos(planet.pos.into());
+
+                    draw::planet(&painter, &planet, screen_pos, &planet_name);
+
+                    // Planet tail select circle
+                    if !planet.locked && self.click_mode == ClickMode::Velocity {
+                        painter.circle_stroke(
+                            screen_pos - TRAIL_SCALE as f32 * egui::Vec2::from(planet.vel),
+                            4.0,
+                            (1.0, Color32::LIGHT_BLUE),
+                        );
+                    }
                 }
 
                 // Selection indicator
@@ -298,7 +304,21 @@ impl App {
                 }
             }
 
-            let clicked_planet = self.simulation.try_find_planet_at_pos(mouse_pos);
+            let mut clicked_planet = self.simulation.try_find_planet_at_pos(mouse_pos);
+            // If no planet clicked directly and in velocity mode
+            if clicked_planet.is_none() && self.click_mode == ClickMode::Velocity {
+                for (idx, planet) in self.simulation.get_planets().enumerate() {
+                    if planet.vel == Vec2::ZERO {
+                        continue;
+                    }
+
+                    let tail_pos = planet.pos - TRAIL_SCALE * planet.vel;
+                    if (tail_pos - mouse_pos).length_sq() < 16.0 {
+                        clicked_planet = Some(idx);
+                        break;
+                    }
+                }
+            }
 
             match self.click_mode {
                 ClickMode::Insert => {
