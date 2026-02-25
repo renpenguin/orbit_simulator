@@ -129,8 +129,10 @@ impl eframe::App for App {
 
         // Simulate planets
         if self.simulation.playing {
-            self.simulation.handle_collisions();
-            self.simulation.simulate_gravity();
+            for _ in 0..self.simulation.tick_rate {
+                self.simulation.handle_collisions();
+                self.simulation.simulate_gravity();
+            }
         }
 
         // Record the planet position *after* the simulation runs
@@ -470,7 +472,7 @@ impl App {
                     }
                 });
 
-                ui.add_space(20.0);
+                ui.add_space(10.0);
 
                 ui.selectable_value(&mut self.click_mode, ClickMode::Select, "1. Select")
                     .on_hover_text_at_pointer("Use the Select tool. Click on a planet to select it, then edit it using keyboard shortcuts (see the Help menu for shortcuts)");
@@ -490,7 +492,11 @@ impl App {
                 ui.selectable_value(&mut self.click_mode, ClickMode::Delete, "6. Delete")
                     .on_hover_text_at_pointer("Use the Delete tool. Click on a planet to delete it");
 
-                ui.add_space(20.0);
+                ui.add_space(10.0);
+
+                ui.add(egui::DragValue::new(&mut self.simulation.tick_rate).custom_formatter(|num, _| (num as usize).to_string()).prefix("Tick rate: ").speed(0.01).range(1..=100));
+
+                ui.add_space(10.0);
 
                 ui.with_layout(
                     egui::Layout::right_to_left(egui::Align::Center),
