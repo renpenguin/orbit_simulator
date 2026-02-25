@@ -66,6 +66,10 @@ impl Selection {
         }
     }
 
+    pub fn is_none(&self) -> bool {
+        matches!(*self, Self::None)
+    }
+
     /// Return a strong reference to a planet, if there is a selection and the planet exists
     pub fn extract_planet(&mut self) -> Option<Rc<RefCell<Planet>>> {
         // Only continue if there is a selection

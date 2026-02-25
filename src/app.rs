@@ -68,7 +68,7 @@ impl App {
         Self {
             click_mode: ClickMode::Select,
             shortcuts_shown: false,
-            tutorial_page: Some(0),
+            tutorial_page: None, // Some(0) // TODO: only show tutorial on first run
             selection: Selection::None,
             simulation: Simulation::default(),
             viewport_focus: Vec2::ZERO,
@@ -137,6 +137,18 @@ impl eframe::App for App {
 
                             if input_state.pointer.secondary_clicked() {
                                 self.last_right_click_pos = mouse_pos;
+                            }
+
+                            let zoom_factor =
+                                (0.01 * input_state.smooth_scroll_delta.y).exp() as f64;
+                            if zoom_factor != 1.0 {
+                                let original_zoom = self.viewport_zoom;
+                                self.viewport_zoom *= zoom_factor;
+
+                                let mouse_pos = Vec2::from(mouse_screen_pos);
+                                self.viewport_focus += (original_zoom.recip()
+                                    - self.viewport_zoom.recip())
+                                    * mouse_pos;
                             }
                         }
                     });
@@ -343,10 +355,8 @@ impl App {
 
             match self.click_mode {
                 ClickMode::Insert => {
-                    // Create and select a new planet
-                    let new_planet = Planet::new(mouse_pos, 960.0);
-                    self.selection = Selection::new(ClickMode::Select, &new_planet, mouse_pos);
-                    self.simulation.planets.push(new_planet);
+                    self.selection = Selection::None;
+                    // Insert planet only on release
                 }
                 ClickMode::Delete => {
                     if let Some(i) = clicked_planet {
@@ -364,13 +374,26 @@ impl App {
                 }
             }
         }
+        // If dragging with middle click or without a selection
+        if mouse_state.middle_down() || (mouse_state.primary_down() && self.selection.is_none()) {
+            self.viewport_focus -= Vec2::from(mouse_state.delta()) / self.viewport_zoom;
+        }
 
-        // Complete operation if mouse released, selection exists and is not "Selected"
-        if mouse_state.primary_released()
-            && let Selection::Some { mode, .. } = &self.selection
-            && *mode != SelectionMode::Selecting
-        {
-            self.selection = Selection::None;
+        if mouse_state.primary_released() {
+            // Complete operation if mouse released, selection exists and is not "Selected"
+            if let Selection::Some { mode, .. } = &self.selection
+                && *mode != SelectionMode::Selecting
+            {
+                self.selection = Selection::None;
+            }
+
+            // If released after not dragging in insert mode, create and select a new planet
+            if self.click_mode == ClickMode::Insert && !mouse_state.is_decidedly_dragging() {
+                let new_planet = Planet::new(mouse_pos, 960.0);
+                self.selection = Selection::new(ClickMode::Select, &new_planet, mouse_pos);
+                self.simulation.planets.push(new_planet);
+            }
+
         }
 
         self.selection.mouse_motion(mouse_pos);
