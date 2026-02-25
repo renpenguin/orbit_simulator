@@ -1,4 +1,8 @@
 use egui::{Color32, Frame, Pos2, Sense};
+use std::{
+    cell::RefCell,
+    rc::{Rc, Weak},
+};
 use web_time::{Duration, Instant};
 
 mod draw;
@@ -47,6 +51,7 @@ pub struct App {
     selection: Selection,
     simulation: Simulation,
 
+    followed_planet: Option<Weak<RefCell<Planet>>>,
     viewport_focus: Vec2,
     viewport_zoom: f64,
 
@@ -69,10 +74,14 @@ impl App {
             click_mode: ClickMode::Select,
             shortcuts_shown: false,
             tutorial_page: None, // Some(0) // TODO: only show tutorial on first run
+
             selection: Selection::None,
             simulation: Simulation::default(),
+
+            followed_planet: None,
             viewport_focus: Vec2::ZERO,
             viewport_zoom: 1.0,
+
             last_right_click_pos: Vec2::ZERO,
             last_draw: Instant::now(),
         }
@@ -103,7 +112,7 @@ impl eframe::App for App {
         // Draw popups
         for (planet_idx, planet_ref) in self.simulation.planets.iter().enumerate() {
             let planet_name = simulation::get_planet_name_from_index(planet_idx);
-            draw::planet_popup(ctx, planet_ref, &planet_name);
+            draw::planet_popup(ctx, planet_ref, &mut self.followed_planet, &planet_name);
         }
 
         self.tutorial_popup(ctx);
@@ -111,10 +120,29 @@ impl eframe::App for App {
         // let delta_time = self.last_draw.elapsed().as_secs_f64();
         self.last_draw = Instant::now();
 
+        // Record the planet position before the simulation runs, if there is a focused planet and it still exists
+        let old_followed_planet_pos = self
+            .followed_planet
+            .as_ref()
+            .and_then(|planet_ref| planet_ref.upgrade())
+            .map(|planet| planet.borrow().pos);
+
         // Simulate planets
         if self.simulation.playing {
             self.simulation.handle_collisions();
             self.simulation.simulate_gravity();
+        }
+
+        // Record the planet position *after* the simulation runs
+        if let Some(planet_ref) = &self.followed_planet {
+            if let Some(planet) = planet_ref.upgrade() {
+                let followed_planet_pos = planet.borrow().pos;
+
+                self.viewport_focus +=
+                    followed_planet_pos - old_followed_planet_pos.unwrap_or_else(|| unreachable!());
+            } else {
+                self.followed_planet = None;
+            }
         }
 
         // Main planet space
@@ -393,7 +421,6 @@ impl App {
                 self.selection = Selection::new(ClickMode::Select, &new_planet, mouse_pos);
                 self.simulation.planets.push(new_planet);
             }
-
         }
 
         self.selection.mouse_motion(mouse_pos);
@@ -580,13 +607,30 @@ impl App {
             let click_pos = self.last_right_click_pos;
             let planet_under_mouse = self.simulation.try_find_planet_at_pos(click_pos);
             if let Some(planet_idx) = planet_under_mouse {
+                let clicked_planet = &self.simulation.planets[planet_idx];
+
                 let nowrap_button =
                     egui::Button::new("Planet info").wrap_mode(egui::TextWrapMode::Extend);
                 if ui.add(nowrap_button)
                     .on_hover_text_at_pointer("Show a floating window containing information about the planet").clicked() {
-                    let mut planet = self.simulation.planets[planet_idx].borrow_mut();
+                    let mut planet = clicked_planet.borrow_mut();
                     planet.popup_open = !planet.popup_open;
                 }
+
+                let followed_planet = self.followed_planet.as_ref().and_then(|planet_ref| planet_ref.upgrade());
+
+                if let Some(planet) = followed_planet && planet.as_ptr().addr() == clicked_planet.as_ptr().addr() {
+                    // If clicked on currently followed planet
+                    if ui.button("Unfollow").clicked() {
+                        self.followed_planet = None;
+                    }
+                // If clicked on planet not currently followed
+                } else if ui.button("Follow").clicked() {
+                    self.followed_planet = Some(Rc::downgrade(&self.simulation.planets[planet_idx]));
+                }
+            // If right-clicked in empty space
+            } else if self.followed_planet.is_some() && ui.button("Unfollow").clicked() {
+                self.followed_planet = None;
             }
 
             ui.selectable_value(&mut self.click_mode, ClickMode::Select, "Select")

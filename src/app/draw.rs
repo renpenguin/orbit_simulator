@@ -1,5 +1,8 @@
 use egui::{Color32, Pos2};
-use std::{cell::RefCell, rc::Rc};
+use std::{
+    cell::RefCell,
+    rc::{Rc, Weak},
+};
 
 use crate::app::simulation::{Planet, TRAIL_SCALE, Vec2};
 
@@ -100,7 +103,13 @@ pub fn shortcuts_screen(ctx: &egui::Context, shortcuts_shown: &mut bool) {
         });
 }
 
-pub fn planet(painter: &egui::Painter, planet: &Planet, screen_position: Pos2, planet_name: &str, scale: f64) {
+pub fn planet(
+    painter: &egui::Painter,
+    planet: &Planet,
+    screen_position: Pos2,
+    planet_name: &str,
+    scale: f64,
+) {
     let radius = (scale * planet.radius()) as f32;
 
     painter.circle_filled(screen_position, radius, Color32::WHITE);
@@ -134,7 +143,12 @@ pub fn planet(painter: &egui::Painter, planet: &Planet, screen_position: Pos2, p
     );
 }
 
-pub fn planet_popup(ctx: &egui::Context, planet_ref: &Rc<RefCell<Planet>>, planet_name: &str) {
+pub fn planet_popup(
+    ctx: &egui::Context,
+    planet_ref: &Rc<RefCell<Planet>>,
+    followed_planet: &mut Option<Weak<RefCell<Planet>>>,
+    planet_name: &str,
+) {
     let mut planet = planet_ref.borrow_mut();
 
     // Skip if planet popup should not be visible
@@ -187,6 +201,21 @@ pub fn planet_popup(ctx: &egui::Context, planet_ref: &Rc<RefCell<Planet>>, plane
                     .on_hover_text_at_pointer(
                         "Lock the planet in one place, forcing it to have a velocity of 0",
                     );
+                ui.end_row();
+
+                let followed_planet_local = followed_planet
+                    .as_ref()
+                    .and_then(|planet_ref| planet_ref.upgrade());
+
+                if let Some(currently_following) = followed_planet_local
+                    && egui::Id::new(currently_following.as_ptr().addr().to_string()) == planet_id
+                {
+                    if ui.button("Unfollow").clicked() {
+                        *followed_planet = None;
+                    }
+                } else if ui.button("Follow").clicked() {
+                    *followed_planet = Some(Rc::downgrade(planet_ref));
+                }
             });
         });
 
