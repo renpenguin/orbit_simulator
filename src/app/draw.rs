@@ -100,8 +100,8 @@ pub fn shortcuts_screen(ctx: &egui::Context, shortcuts_shown: &mut bool) {
         });
 }
 
-pub fn planet(painter: &egui::Painter, planet: &Planet, screen_position: Pos2, planet_name: &str) {
-    let radius = planet.radius() as f32;
+pub fn planet(painter: &egui::Painter, planet: &Planet, screen_position: Pos2, planet_name: &str, scale: f64) {
+    let radius = (scale * planet.radius()) as f32;
 
     painter.circle_filled(screen_position, radius, Color32::WHITE);
 
@@ -127,7 +127,7 @@ pub fn planet(painter: &egui::Painter, planet: &Planet, screen_position: Pos2, p
         vec![
             screen_position + side_offset,
             screen_position - side_offset,
-            screen_position - TRAIL_SCALE as f32 * egui::Vec2::from(planet.vel),
+            screen_position - (scale * TRAIL_SCALE) as f32 * egui::Vec2::from(planet.vel),
             screen_position + side_offset,
         ],
         (1.0, Color32::GRAY),

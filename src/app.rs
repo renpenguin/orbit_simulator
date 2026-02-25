@@ -1,4 +1,4 @@
-use egui::{Color32, Frame, Pos2, Rect, Sense, emath::RectTransform};
+use egui::{Color32, Frame, Pos2, Sense};
 use web_time::{Duration, Instant};
 
 mod draw;
@@ -47,6 +47,9 @@ pub struct App {
     selection: Selection,
     simulation: Simulation,
 
+    viewport_focus: Vec2,
+    viewport_zoom: f64,
+
     last_right_click_pos: Vec2,
     last_draw: Instant,
 }
@@ -68,9 +71,18 @@ impl App {
             tutorial_page: Some(0),
             selection: Selection::None,
             simulation: Simulation::default(),
+            viewport_focus: Vec2::ZERO,
+            viewport_zoom: 1.0,
             last_right_click_pos: Vec2::ZERO,
             last_draw: Instant::now(),
         }
+    }
+
+    fn sim_point_to_screen(&self, sim_point: Vec2) -> Pos2 {
+        Pos2::from(self.viewport_zoom * (sim_point - self.viewport_focus))
+    }
+    fn screen_point_to_sim(&self, screen_point: Pos2) -> Vec2 {
+        Vec2::from(screen_point) / self.viewport_zoom + self.viewport_focus
     }
 }
 
@@ -113,18 +125,12 @@ impl eframe::App for App {
                 let (response, painter) =
                     ui.allocate_painter(ui.available_size(), Sense::click_and_drag());
 
-                // Get the relative position of our "canvas"
-                let to_screen = RectTransform::from_to(
-                    Rect::from_min_size(Pos2::ZERO, response.rect.size()),
-                    response.rect,
-                );
-
                 // Handle mouse inputs
                 if response.hovered() {
                     ctx.input(|input_state| {
-                        if let Some(mouse_pos) = input_state.pointer.latest_pos() {
+                        if let Some(mouse_screen_pos) = input_state.pointer.latest_pos() {
                             // Map screen coordinates to position in painter
-                            let mouse_pos = to_screen.inverse().transform_pos(mouse_pos).into();
+                            let mouse_pos = self.screen_point_to_sim(mouse_screen_pos);
 
                             self.handle_sim_mouse_input(&input_state.pointer, mouse_pos);
                             self.handle_selection_shortcut(input_state, mouse_pos);
@@ -140,14 +146,21 @@ impl eframe::App for App {
                 // Draw planets
                 for (planet_idx, planet) in self.simulation.get_planets().enumerate() {
                     let planet_name = simulation::get_planet_name_from_index(planet_idx);
-                    let screen_pos = to_screen.transform_pos(planet.pos.into());
+                    let screen_pos = self.sim_point_to_screen(planet.pos);
 
-                    draw::planet(&painter, &planet, screen_pos, &planet_name);
+                    draw::planet(
+                        &painter,
+                        &planet,
+                        screen_pos,
+                        &planet_name,
+                        self.viewport_zoom,
+                    );
 
                     // Planet tail select circle
                     if !planet.locked && self.click_mode == ClickMode::Velocity {
+                        let tail_length = (self.viewport_zoom * TRAIL_SCALE) as f32;
                         painter.circle_stroke(
-                            screen_pos - TRAIL_SCALE as f32 * egui::Vec2::from(planet.vel),
+                            screen_pos - tail_length * egui::Vec2::from(planet.vel),
                             4.0,
                             (1.0, Color32::LIGHT_BLUE),
                         );
@@ -159,8 +172,8 @@ impl eframe::App for App {
                     && let Some(planet) = self.selection.extract_planet()
                 {
                     let planet = planet.borrow();
-                    let centre_pos = to_screen.transform_pos(planet.pos.into());
-                    let radius = planet.radius() as f32 + 4.0;
+                    let centre_pos = self.sim_point_to_screen(planet.pos);
+                    let radius = (self.viewport_zoom * planet.radius()) as f32 + 4.0;
                     painter.line(
                         vec![
                             centre_pos + egui::Vec2::new(-radius, -radius),
