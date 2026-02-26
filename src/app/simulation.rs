@@ -10,7 +10,7 @@ pub use planet::{Planet, TRAIL_SCALE, Vec2, get_planet_name_from_index};
 pub struct Simulation {
     pub planets: Vec<Rc<RefCell<Planet>>>,
     pub tick_rate: usize,
-    pub is_k2l_enabled: bool,
+    // pub is_k2l_enabled: bool,
     pub playing: bool,
 }
 
@@ -19,7 +19,7 @@ impl Default for Simulation {
         Self {
             planets: vec![],
             tick_rate: 1,
-            is_k2l_enabled: false,
+            // is_k2l_enabled: false,
             playing: false,
         }
     }
@@ -42,8 +42,18 @@ impl Simulation {
         None
     }
 
+    pub fn update(&mut self) {
+        // Simulate gravity
+        if self.playing {
+            for _ in 0..self.tick_rate {
+                self.handle_collisions();
+                self.simulate_gravity();
+            }
+        }
+    }
+
     // Move planets based on gravity
-    pub fn simulate_gravity(&self) {
+    fn simulate_gravity(&self) {
         let planets_len = self.planets.len(); // Call only once, as the length does not change
         let mut forces = vec![Vec2::ZERO; planets_len];
 
@@ -72,7 +82,7 @@ impl Simulation {
         }
     }
 
-    pub fn handle_collisions(&mut self) {
+    fn handle_collisions(&mut self) {
         let planets_len = self.planets.len();
         // Stores true at index of planet to delete
         let mut planets_to_delete = vec![false; planets_len];
