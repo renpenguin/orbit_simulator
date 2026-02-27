@@ -131,7 +131,9 @@ impl App {
                 }
             }
 
-            let mut clicked_planet = self.simulation.try_find_planet_at_pos(mouse_pos);
+            let mut clicked_planet = self
+                .simulation
+                .try_find_planet_at_pos(mouse_pos, 4.0 / self.viewport_zoom);
             // If no planet clicked directly and in velocity mode
             if clicked_planet.is_none() && self.click_mode == ClickMode::Velocity {
                 for (idx, planet) in self.simulation.get_planets().enumerate() {
@@ -233,7 +235,9 @@ impl App {
     pub fn handle_context_menu(&mut self, response: &egui::Response) {
         response.context_menu(|ui| {
             let click_pos = self.last_right_click_pos;
-            let planet_under_mouse = self.simulation.try_find_planet_at_pos(click_pos);
+            let planet_under_mouse = self
+                .simulation
+                .try_find_planet_at_pos(click_pos, 4.0 / self.viewport_zoom);
             if let Some(planet_idx) = planet_under_mouse {
                 let clicked_planet = &self.simulation.planets[planet_idx];
 

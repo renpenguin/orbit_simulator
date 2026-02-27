@@ -32,9 +32,9 @@ impl Simulation {
     }
 
     // Return the index of the first planet found at the passed position
-    pub fn try_find_planet_at_pos(&self, pos: Vec2) -> Option<usize> {
+    pub fn try_find_planet_at_pos(&self, pos: Vec2, tolerance: f64) -> Option<usize> {
         for (i, body) in self.get_planets().enumerate() {
-            if (pos - body.pos).length_sq() < body.radius().powi(2) {
+            if (pos - body.pos).length_sq() < (body.radius() + tolerance).powi(2) {
                 return Some(i);
             }
         }
