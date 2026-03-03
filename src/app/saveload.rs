@@ -8,7 +8,7 @@ impl App {
         let handle = rfd::FileDialog::new()
             .set_can_create_directories(true)
             .set_title("Save simulation to file")
-            .set_file_name("simulation.sim")
+            .set_file_name("orbit_simulation.sim")
             .save_file();
 
         if handle.is_some() {
@@ -18,7 +18,31 @@ impl App {
 
     /// Generate save data to save to a file (platform-agnostic)
     fn generate_save_data(&self) -> String {
-        todo!()
+        let mut save = String::new();
+
+        // writes line "<viewport x> <viewport y> <viewport zoom>" to `save`
+        save.push_str(&format!(
+            "{} {} {}\n",
+            self.viewport_focus.x, self.viewport_focus.y, self.viewport_zoom,
+        ));
+        // writes line "<tick rate> <planets count>" to `save`
+        save.push_str(&format!(
+            "{} {}\n",
+            self.simulation.tick_rate,
+            self.simulation.planets.len(),
+        ));
+
+        // writes planet line for each planet: "<px> <py> <vx> <vy> <locked>"
+        for planet in self.simulation.get_planets() {
+            let lock_num = i32::from(planet.locked);
+
+            save.push_str(&format!(
+                "{} {} {} {} {} {}\n",
+                planet.pos.x, planet.pos.y, planet.vel.x, planet.vel.y, planet.mass, lock_num
+            ));
+        }
+
+        save
     }
 
     /// Save the simulation to the save location stored in `App.save_location`

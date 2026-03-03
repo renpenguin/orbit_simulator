@@ -123,6 +123,14 @@ impl eframe::App for App {
         draw_help::shortcuts_screen(ctx, &mut self.shortcuts_shown);
         self.tutorial_popup(ctx);
 
+        #[cfg(not(target_arch = "wasm32"))]
+        if let Some(message) = &self.error_message {
+            let open = draw_ui::message_dialogue(ctx, message);
+            if !open {
+                self.error_message = None;
+            }
+        }
+
         // Planet popups
         for (planet_idx, planet_ref) in self.simulation.planets.iter().enumerate() {
             let planet_name = simulation::get_planet_name_from_index(planet_idx);

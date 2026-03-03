@@ -109,6 +109,28 @@ pub fn planet_popup(
     planet.popup_open = is_open;
 }
 
+#[cfg(not(target_arch = "wasm32"))]
+pub fn message_dialogue(ctx: &egui::Context, message: &str) -> bool {
+    let mut is_open = true;
+
+    egui::Window::new("Error")
+        .resizable(false)
+        .title_bar(false)
+        .anchor(egui::Align2::CENTER_CENTER, (0.0, 0.0))
+        .movable(false)
+        .order(egui::Order::Foreground)
+        .show(ctx, |ui| {
+            ui.vertical_centered(|ui| {
+                ui.label(RichText::new(message).size(16.0));
+                if ui.button("Ok").clicked() {
+                    is_open = false;
+                }
+            })
+        });
+
+    is_open
+}
+
 impl App {
     pub fn draw_top_panel(&mut self, ctx: &egui::Context) {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
