@@ -116,12 +116,20 @@ impl App {
                 ui.menu_button("File", |ui| {
                     if ui.button("New simulation").clicked() {
                         self.simulation = Simulation::default();
+                        #[cfg(not(target_arch = "wasm32"))] {
+                            self.save_file = None;
+                            self.error_message = None;
+                        }
                     }
                     if ui.button("Load from file").clicked() {
-                        println!("Load a world from a file");
+                        self.load();
                     }
-                    if ui.button("Save to file").clicked() {
-                        println!("Save the world to a file");
+                    if ui.button("Save simulation").clicked() {
+                        self.save();
+                    }
+                    #[cfg(not(target_arch = "wasm32"))]
+                    if ui.button("Save simulation as...").clicked() {
+                        self.save_as();
                     }
 
                     // NOTE: No File->Quit on web pages!

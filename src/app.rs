@@ -4,6 +4,7 @@ mod draw_help;
 mod draw_sim;
 mod draw_ui;
 mod input;
+mod saveload;
 
 mod selection;
 use selection::Selection;
@@ -34,6 +35,11 @@ pub struct App {
     viewport_focus: Vec2,
     viewport_zoom: f64,
 
+    #[cfg(not(target_arch = "wasm32"))]
+    save_file: Option<std::path::PathBuf>,
+    #[cfg(not(target_arch = "wasm32"))]
+    error_message: Option<String>,
+
     last_right_click_pos: Vec2,
 }
 
@@ -59,6 +65,11 @@ impl App {
             followed_planet: None,
             viewport_focus: Vec2::ZERO,
             viewport_zoom: 1.0,
+
+            #[cfg(not(target_arch = "wasm32"))]
+            save_file: None,
+            #[cfg(not(target_arch = "wasm32"))]
+            error_message: None,
 
             last_right_click_pos: Vec2::ZERO,
         }

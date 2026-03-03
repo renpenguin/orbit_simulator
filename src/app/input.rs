@@ -21,6 +21,13 @@ impl App {
         // println!("Pressed {}{:?}", if modifiers.ctrl { "CTRL " } else { "" }, key);
 
         match key {
+            #[cfg(not(target_arch = "wasm32"))]
+            egui::Key::S if modifiers.ctrl && modifiers.shift => self.save_as(),
+
+            egui::Key::S if modifiers.ctrl => self.save(),
+
+            egui::Key::O if modifiers.ctrl => self.load(),
+
             // Shortcut key
             egui::Key::Slash if modifiers.ctrl => {
                 self.shortcuts_shown = !self.shortcuts_shown;
