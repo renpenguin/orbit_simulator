@@ -26,7 +26,10 @@ impl App {
 
             egui::Key::S if modifiers.ctrl => self.save(),
 
-            egui::Key::O if modifiers.ctrl => self.load(),
+            #[cfg(target_arch = "wasm32")]
+            egui::Key::O if modifiers.ctrl => self.load_web(),
+            #[cfg(not(target_arch = "wasm32"))]
+            egui::Key::O if modifiers.ctrl => self.load_native(),
 
             // Shortcut key
             egui::Key::Slash if modifiers.ctrl => {

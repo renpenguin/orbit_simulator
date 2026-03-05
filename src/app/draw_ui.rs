@@ -144,7 +144,10 @@ impl App {
                         }
                     }
                     if ui.button("Load from file").clicked() {
-                        self.load();
+                        #[cfg(target_arch = "wasm32")]
+                        self.load_web();
+                        #[cfg(not(target_arch = "wasm32"))]
+                        self.load_native();
                     }
                     if ui.button("Save simulation").clicked() {
                         self.save();

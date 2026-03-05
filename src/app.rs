@@ -40,6 +40,9 @@ pub struct App {
     #[cfg(not(target_arch = "wasm32"))]
     error_message: Option<String>,
 
+    #[cfg(target_arch = "wasm32")]
+    load_task: Option<saveload::Task<Option<String>>>,
+
     last_right_click_pos: Vec2,
 }
 
@@ -70,6 +73,8 @@ impl App {
             save_file: None,
             #[cfg(not(target_arch = "wasm32"))]
             error_message: None,
+            #[cfg(target_arch = "wasm32")]
+            load_task: None,
 
             last_right_click_pos: Vec2::ZERO,
         }
@@ -94,6 +99,9 @@ impl eframe::App for App {
                 }
             });
         }
+
+        #[cfg(target_arch = "wasm32")]
+        self.process_load_task();
 
         // Record the planet position before the simulation runs, if there is a focused planet and it still exists
         let old_followed_planet_pos = self
