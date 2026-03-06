@@ -1,8 +1,8 @@
 use crate::App;
 
-use std::str::FromStr;
 #[cfg(target_arch = "wasm32")]
 use std::{cell::Cell, rc::Rc, thread};
+use std::{fmt::Display, str::FromStr};
 #[cfg(target_arch = "wasm32")]
 pub struct Task<T>(Rc<Cell<Option<thread::Result<T>>>>);
 
@@ -22,6 +22,17 @@ impl<T: 'static> Task<T> {
     pub fn take_output(&self) -> Option<thread::Result<T>> {
         self.0.take()
     }
+}
+
+fn parse_next<T>(numbers: &mut dyn Iterator<Item = &str>) -> Result<T, String>
+where
+    T: FromStr,
+    <T as FromStr>::Err: Display,
+{
+    numbers
+        .next()
+        .ok_or_else(|| String::from("reached EOF early - expected another number"))
+        .and_then(|word| word.parse::<T>().map_err(|err| format!("{err} ({word})")))
 }
 
 impl App {
@@ -135,8 +146,55 @@ impl App {
         self.save_native();
     }
 
-    fn load_simulation_from_string(&mut self, data: &str) {
-        todo!();
+    fn load_simulation_from_string(&mut self, data: &str) -> Result<(), String> {
+        use crate::app::{ClickMode, Planet, Selection, Simulation, Vec2};
+
+        let mut numbers = data.split_whitespace();
+
+        // Viewport focus and zoom
+        let viewport_focus = Vec2::new(parse_next(&mut numbers)?, parse_next(&mut numbers)?);
+        let viewport_zoom = parse_next::<f64>(&mut numbers)?;
+        if viewport_zoom <= 0.0 {
+            return Err(String::from("viewport zoom value cannot be negative"));
+        }
+
+        // Tick rate
+        let mut simulation = Simulation {
+            planets: vec![],
+            tick_rate: parse_next::<usize>(&mut numbers)?,
+            playing: false,
+        };
+
+        // Planets length
+        let planets_len = parse_next::<usize>(&mut numbers)?;
+        simulation.planets.reserve(planets_len);
+
+        // Planets
+        for _ in 0..planets_len {
+            let planet = Planet {
+                pos: Vec2::new(parse_next(&mut numbers)?, parse_next(&mut numbers)?),
+                vel: Vec2::new(parse_next(&mut numbers)?, parse_next(&mut numbers)?),
+                mass: parse_next(&mut numbers)?,
+                locked: parse_next::<usize>(&mut numbers)? != 0,
+                popup_open: false,
+            };
+            if planet.mass <= 0.0 {
+                return Err(String::from("planet mass cannot be negative"));
+            }
+
+            simulation.planets.push(planet.as_rc());
+        }
+
+        self.click_mode = ClickMode::Select;
+        self.shortcuts_shown = false;
+        self.tutorial_page = None;
+        self.selection = Selection::None;
+        self.simulation = simulation;
+        self.followed_planet = None;
+        self.viewport_focus = viewport_focus;
+        self.viewport_zoom = viewport_zoom;
+
+        Ok(())
     }
 
     /// Ask the user to choose a file, load a simulation from it and store the origin location in `App.save_file`
@@ -154,7 +212,9 @@ impl App {
 
         match std::fs::read_to_string(&path) {
             // If file read successfully, parse its contents and load the simulation
-            Ok(data) => self.load_simulation_from_string(&data),
+            Ok(data) => {
+                self.error_message = self.load_simulation_from_string(&data).err();
+            }
             // Otherwise, show an error
             Err(err) => {
                 self.error_message = Some(format!("Error reading file: {err}"));
@@ -188,6 +248,12 @@ impl App {
         };
 
         self.load_task = None;
-        self.load_simulation_from_string(&data);
+        let result = self.load_simulation_from_string(&data);
+        if let Err(err) = result {
+            rfd::MessageDialog::new()
+                .set_title("Error")
+                .set_description(err)
+                .show();
+        }
     }
 }
