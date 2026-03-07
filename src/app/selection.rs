@@ -112,9 +112,14 @@ impl Selection {
                 original_mass,
                 original_distance_sq,
             } => {
-                // Current distance to planet / original distance to planet
-                let scale_ratio = (planet.pos - mouse_pos).length_sq() / *original_distance_sq;
-                planet.mass = *original_mass * scale_ratio;
+                let current_distance_sq = (planet.pos - mouse_pos).length_sq();
+                if *original_distance_sq == 0.0 {
+                    *original_distance_sq = current_distance_sq;
+                } else {
+                    // Current distance to planet / original distance to planet
+                    let scale_ratio = current_distance_sq / *original_distance_sq;
+                    planet.mass = *original_mass * scale_ratio;
+                }
             }
             // Aim planet
             SelectionMode::Aiming {
