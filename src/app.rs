@@ -12,6 +12,9 @@ use selection::Selection;
 mod simulation;
 use simulation::{Planet, Simulation, Vec2};
 
+mod trails;
+use trails::TrailManager;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ClickMode {
     Select,
@@ -30,6 +33,7 @@ pub struct App {
 
     selection: Selection,
     simulation: Simulation,
+    trail_manager: TrailManager,
 
     followed_planet: Option<Weak<RefCell<Planet>>>,
     viewport_focus: Vec2,
@@ -64,6 +68,7 @@ impl App {
 
             selection: Selection::None,
             simulation: Simulation::default(),
+            trail_manager: TrailManager::default(),
 
             followed_planet: None,
             viewport_focus: Vec2::ZERO,
@@ -112,6 +117,11 @@ impl eframe::App for App {
 
         // Run simulation
         self.simulation.update();
+
+        // Record trails
+        if self.simulation.playing {
+            self.trail_manager.planets_moved(&self.simulation.planets);
+        }
 
         // Record the planet position *after* the simulation runs and adjust the viewport focus to keep the planet in place
         if let Some(planet_ref) = &self.followed_planet {
@@ -162,6 +172,9 @@ impl eframe::App for App {
 
                 // Context menu when painter space is secondary-clicked
                 self.handle_context_menu(&response);
+
+                // Draw trails
+                self.draw_trails(&painter);
 
                 // Draw planets
                 self.draw_planets(&painter);
