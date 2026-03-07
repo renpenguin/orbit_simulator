@@ -44,6 +44,17 @@ impl TrailPositions {
 
         self.positions[self.back] = position;
     }
+
+    /// Remove an item from the front of the positions circular queue. Return true if there are no positions left to remove
+    pub fn dequeue_until_empty(&mut self) -> bool {
+        // Only one item left. No line to draw, so return `true` to indicate empty
+        if self.front == self.back {
+            return true;
+        }
+        // Shift the front forward to remove a position that would be read in `App.draw_trails`.
+        self.front = (self.front + 1) % MAX_TRAIL_LENGTH;
+        false
+    }
 }
 
 #[derive(Default)]
@@ -62,15 +73,18 @@ impl TrailManager {
 
         // Process existing trails. Remove trails whose planets have been deleted
         let mut trail_idx = 0;
-        while trail_idx < self.trails.len() {
-            self.trails[trail_idx].enqueue_position();
+        while let Some(trail) = self.trails.get_mut(trail_idx) {
+            trail.enqueue_position();
 
-            let planet_exists = self.trails[trail_idx].planet.upgrade().is_some();
-            if planet_exists {
-                trail_idx += 1;
-            } else {
-                self.trails.swap_remove(trail_idx);
+            let planet_exists = trail.planet.upgrade().is_some();
+            if !planet_exists {
+                let is_empty = trail.dequeue_until_empty();
+                if is_empty {
+                    self.trails.swap_remove(trail_idx); // Next trail takes place of current
+                    continue;
+                }
             }
+            trail_idx += 1;
         }
 
         // A list of the address of every planet with a related TrailPostions object
