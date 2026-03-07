@@ -1,12 +1,9 @@
 use std::rc::Rc;
 
-use crate::{
-    App,
-    app::{
-        ClickMode,
-        selection::{Selection, SelectionMode},
-        simulation::{Planet, TRAIL_SCALE, Vec2},
-    },
+use crate::app::{
+    self, App, ClickMode,
+    selection::{Selection, SelectionMode},
+    simulation::{Planet, Vec2},
 };
 
 impl App {
@@ -30,6 +27,16 @@ impl App {
             egui::Key::O if modifiers.ctrl => self.load_web(),
             #[cfg(not(target_arch = "wasm32"))]
             egui::Key::O if modifiers.ctrl => self.load_native(),
+
+            egui::Key::N if modifiers.ctrl => {
+                self.simulation = app::Simulation::default();
+                self.trail_manager = app::TrailManager::default();
+                #[cfg(not(target_arch = "wasm32"))]
+                {
+                    self.save_file = None;
+                    self.error_message = None;
+                }
+            }
 
             // Shortcut key
             egui::Key::Slash if modifiers.ctrl => {
@@ -151,7 +158,7 @@ impl App {
                         continue;
                     }
 
-                    let tail_pos = planet.pos - TRAIL_SCALE * planet.vel;
+                    let tail_pos = planet.pos - app::simulation::TRAIL_SCALE * planet.vel;
                     if (tail_pos - mouse_pos).length_sq() < 16.0 {
                         clicked_planet = Some(idx);
                         break;

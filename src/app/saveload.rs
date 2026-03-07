@@ -147,7 +147,7 @@ impl App {
     }
 
     fn load_simulation_from_string(&mut self, data: &str) -> Result<(), String> {
-        use crate::app::{ClickMode, Planet, Selection, Simulation, Vec2};
+        use crate::app::{ClickMode, Planet, Selection, Simulation, Vec2, TrailManager};
 
         let mut numbers = data.split_whitespace();
 
@@ -190,6 +190,7 @@ impl App {
         self.tutorial_page = None;
         self.selection = Selection::None;
         self.simulation = simulation;
+        self.trail_manager = TrailManager::default();
         self.followed_planet = None;
         self.viewport_focus = viewport_focus;
         self.viewport_zoom = viewport_zoom;
