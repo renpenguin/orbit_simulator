@@ -131,8 +131,7 @@ impl Selection {
                     planet.vel = (planet.pos - mouse_pos) / TAIL_SCALE;
                 } else {
                     // Aim with Select + V
-                    planet.vel =
-                        *original_velocity - (mouse_pos - *initial_mouse_pos) / TAIL_SCALE;
+                    planet.vel = *original_velocity - (mouse_pos - *initial_mouse_pos) / TAIL_SCALE;
                 }
             }
         }

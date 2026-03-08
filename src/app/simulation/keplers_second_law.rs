@@ -134,7 +134,10 @@ impl K2L {
         // Set up mesh with central body pos and first sweep separation as vertices
         let mut drawn_swept_area = egui::Mesh::default();
         drawn_swept_area.colored_vertex(sim_to_screen(*stationary_body_pos), Color32::GRAY);
-        drawn_swept_area.colored_vertex(sim_to_screen(*stationary_body_pos + sweep_separations[0]), Color32::GRAY);
+        drawn_swept_area.colored_vertex(
+            sim_to_screen(*stationary_body_pos + sweep_separations[0]),
+            Color32::GRAY,
+        );
 
         let mut position_index = 1;
         for separation in sweep_separations.iter().skip(1) {

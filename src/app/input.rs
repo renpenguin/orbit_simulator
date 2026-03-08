@@ -187,8 +187,7 @@ impl App {
 
         if mouse_state.primary_released() {
             // Complete operation if mouse released, selection exists and is not "Selected"
-            if let Selection::Some { mode, .. } = &self.selection
-                && *mode != SelectionMode::Selecting
+            if matches!(&self.selection, Selection::Some { mode, .. } if *mode != SelectionMode::Selecting)
             {
                 self.selection = Selection::None;
             }
