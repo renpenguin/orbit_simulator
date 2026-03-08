@@ -49,12 +49,13 @@ pub struct App {
     last_right_click_pos: Vec2,
 }
 
-impl Default for App {
-    fn default() -> Self {
+impl App {
+    // Default values for all properties, while preserving tutorial popup state
+    fn empty(tutorial_open: bool) -> Self {
         Self {
             click_mode: ClickMode::Select,
             shortcuts_shown: false,
-            tutorial_page: None,
+            tutorial_page: tutorial_open.then_some(0),
 
             selection: Selection::None,
             simulation: Simulation::default(),
@@ -74,9 +75,7 @@ impl Default for App {
             last_right_click_pos: Vec2::ZERO,
         }
     }
-}
 
-impl App {
     /// Called once before the first frame.
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         cc.egui_ctx.set_theme(egui::Theme::Dark);
@@ -87,7 +86,10 @@ impl App {
 
         egui_material_icons::initialize(&cc.egui_ctx);
 
-        Self::default()
+        // Only show tutorial if storage exists but "tutorial_closed" has not been set
+        let show_tutorial = cc.storage.map(|s| s.get_string("tutorial_closed")) == Some(None);
+
+        Self::empty(show_tutorial)
     }
 
     fn sim_point_to_screen(&self, sim_point: Vec2) -> egui::Pos2 {
@@ -99,6 +101,13 @@ impl App {
 }
 
 impl eframe::App for App {
+    fn save(&mut self, storage: &mut dyn eframe::Storage) {
+        // Record whether the tutorial has been closed
+        if self.tutorial_page.is_none() {
+            storage.set_string("tutorial_closed", String::from("yes"));
+        }
+    }
+
     /// Called each time the UI needs repainting, which may be many times per second.
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         // Process global shortcuts

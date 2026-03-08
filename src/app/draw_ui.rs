@@ -134,7 +134,7 @@ impl App {
             egui::MenuBar::new().ui(ui, |ui| {
                 ui.menu_button("File", |ui| {
                     if ui.button("New simulation").clicked() {
-                        *self = Self::default();
+                        *self = Self::empty(self.tutorial_page.is_some());
                     }
                     if ui.button("Load from file").clicked() {
                         #[cfg(target_arch = "wasm32")]

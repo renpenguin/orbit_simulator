@@ -151,7 +151,7 @@ impl App {
     }
 
     fn load_simulation_from_string(&mut self, data: &str) -> Result<(), String> {
-        let mut app = Self::default();
+        let mut app = Self::empty(self.tutorial_page.is_some());
 
         #[cfg(not(target_arch = "wasm32"))]
         {

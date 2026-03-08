@@ -29,7 +29,7 @@ impl App {
             egui::Key::O if modifiers.ctrl => self.load_native(),
 
             egui::Key::N if modifiers.ctrl => {
-                *self = Self::default();
+                *self = Self::empty(self.tutorial_page.is_some());
             }
 
             // Shortcut key
