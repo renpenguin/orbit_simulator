@@ -5,7 +5,7 @@ use std::{
     rc::{Rc, Weak},
 };
 
-use crate::app::{Planet, Vec2};
+use crate::app::{Planet, Selection, Vec2};
 
 const MAX_TRAIL_LENGTH: usize = 500;
 const RECORD_INTERVAL: usize = 3;
@@ -66,6 +66,7 @@ pub struct TrailManager {
 
 impl TrailManager {
     pub fn planets_moved(&mut self, planets: &[Rc<RefCell<Planet>>]) {
+        // Only record trail positions every `RECORD_INTERVAL` frames
         self.frame = (self.frame + 1) % RECORD_INTERVAL;
         if self.frame != 0 {
             return;
@@ -88,15 +89,15 @@ impl TrailManager {
         }
 
         // A list of the address of every planet with a related TrailPostions object
-        let trailed_planet_addresses: HashSet<usize> = self
+        let trailed_planet_addresses: HashSet<*mut Planet> = self
             .trails
             .iter()
-            .filter_map(|t| t.planet.upgrade().map(|planet| planet.as_ptr().addr()))
+            .filter_map(|t| t.planet.upgrade().map(|planet| planet.as_ptr()))
             .collect();
 
         // Add new planets to the trails list
         for planet in planets {
-            if !trailed_planet_addresses.contains(&planet.as_ptr().addr()) {
+            if !trailed_planet_addresses.contains(&planet.as_ptr()) {
                 self.trails.push(TrailPositions::new(planet));
             }
         }
@@ -106,6 +107,7 @@ impl TrailManager {
 impl crate::App {
     pub fn draw_trails(&self, painter: &egui::Painter) {
         for trail in &self.trail_manager.trails {
+            // Create a list to store the screen point of every trail position
             let mut line_points = Vec::with_capacity(MAX_TRAIL_LENGTH);
             line_points.push(self.sim_point_to_screen(trail.positions[trail.front]));
 
@@ -117,7 +119,19 @@ impl crate::App {
 
             let stroke = self.viewport_zoom.clamp(0.4, 2.0) as f32;
 
-            painter.line(line_points, (stroke, Color32::DARK_GRAY));
+            // Trails are dark grey by default, but faded light blue if the planet is selected
+            let color = if let Selection::Some { planet, .. } = &self.selection {
+                if planet.ptr_eq(&trail.planet) {
+                    Color32::from_rgb(0x54, 0x78, 0x84)
+                } else {
+                    Color32::DARK_GRAY
+                }
+            } else {
+                Color32::DARK_GRAY
+            };
+
+            // Draw line
+            painter.line(line_points, (stroke, color));
         }
     }
 }

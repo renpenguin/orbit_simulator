@@ -174,6 +174,10 @@ impl App {
                     if ui.button("Show forces acting on planets").clicked() {
                         println!("Load a world from a file");
                     }
+
+                    if ui.button("Clear trails").clicked() {
+                        self.trail_manager.trails.clear();
+                    }
                 });
 
                 ui.menu_button("Help", |ui| {

@@ -54,10 +54,9 @@ impl App {
                     return;
                 };
 
-                let addr_to_delete = planet_to_delete.as_ptr().addr();
                 for i in 0..self.simulation.planets.len() {
                     // Does this pointer have the same address as the selection's planet pointer?
-                    if self.simulation.planets[i].as_ptr().addr() == addr_to_delete {
+                    if self.simulation.planets[i].as_ptr() == planet_to_delete.as_ptr() {
                         self.simulation.planets.swap_remove(i);
                         self.selection = Selection::None;
                         break;
@@ -269,9 +268,9 @@ impl App {
                 let followed_planet_id = self.followed_planet
                     .as_ref()
                     .and_then(|planet_ref| planet_ref.upgrade())
-                    .map(|planet| egui::Id::new(planet.as_ptr().addr()));
+                    .map(|planet| planet.as_ptr());
 
-                if followed_planet_id == Some(egui::Id::new(clicked_planet.as_ptr().addr())) {
+                if followed_planet_id == Some(clicked_planet.as_ptr()) {
                     // If clicked on currently followed planet
                     if ui.button("Unfollow").clicked() {
                         self.followed_planet = None;
