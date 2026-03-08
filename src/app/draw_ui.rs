@@ -183,6 +183,10 @@ impl App {
                     if ui.button("Shortcuts").on_hover_text_at_pointer("Show shortcuts screen").clicked() {
                         self.shortcuts_shown = !self.shortcuts_shown;
                     }
+                    ui.horizontal(|ui| {
+                        // icons::ICON_OPEN_IN_NEW = \u{e89e}
+                        ui.add(egui::Hyperlink::from_label_and_url("GitHub \u{e89e}", "https://github.com/renpenguin/orbit_simulator").open_in_new_tab(true));
+                    });
                 });
 
                 ui.add_space(10.0);
