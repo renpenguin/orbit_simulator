@@ -122,6 +122,9 @@ impl eframe::App for App {
         if self.simulation.playing {
             self.trail_manager.planets_moved(&self.simulation.planets);
         }
+        self.simulation
+            .k2l
+            .sweep_area(&self.simulation.planets);
 
         // Record the planet position *after* the simulation runs and adjust the viewport focus to keep the planet in place
         if let Some(planet_ref) = &self.followed_planet {
@@ -140,6 +143,8 @@ impl eframe::App for App {
         // Help screens
         draw_help::shortcuts_screen(ctx, &mut self.shortcuts_shown);
         self.tutorial_popup(ctx);
+
+        self.simulation.k2l.draw_popup(ctx);
 
         #[cfg(not(target_arch = "wasm32"))]
         if let Some(message) = &self.error_message {
@@ -175,6 +180,10 @@ impl eframe::App for App {
 
                 // Draw trails
                 self.draw_trails(&painter);
+
+                self.simulation
+                    .k2l
+                    .draw_area(&painter, |p| self.sim_point_to_screen(p));
 
                 // Draw planets
                 self.draw_planets(&painter);

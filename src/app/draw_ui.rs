@@ -165,12 +165,15 @@ impl App {
                 });
 
                 ui.menu_button("Tools", |ui| {
-                    if ui.button("Kepler's 2nd Law")
-                        .on_hover_text_at_pointer("Show a visualisation of Kepler's 2nd Law when there are only two planets and one is stationary")
-                        .clicked()
+                    use crate::app::simulation::K2L;
+                    let mut k2l_checked = !matches!(self.simulation.k2l, K2L::Disabled);
+                    if ui.checkbox(&mut k2l_checked, "Kepler's Second Law")
+                        .on_hover_text_at_pointer("Show a visualisation of Kepler's Second Law")
+                        .changed()
                     {
-                        println!("Start a new world");
+                        self.simulation.k2l = if k2l_checked { K2L::IncorrectSetup } else { K2L::Disabled };
                     }
+
                     if ui.button("Show forces acting on planets").clicked() {
                         println!("Load a world from a file");
                     }

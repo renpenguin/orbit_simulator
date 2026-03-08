@@ -147,7 +147,7 @@ impl App {
     }
 
     fn load_simulation_from_string(&mut self, data: &str) -> Result<(), String> {
-        use crate::app::{ClickMode, Planet, Selection, Simulation, Vec2, TrailManager};
+        use crate::app::{ClickMode, Planet, Selection, Simulation, Vec2, TrailManager, simulation::K2L};
 
         let mut numbers = data.split_whitespace();
 
@@ -162,6 +162,7 @@ impl App {
         let mut simulation = Simulation {
             planets: vec![],
             tick_rate: parse_next::<usize>(&mut numbers)?,
+            k2l: K2L::Disabled,
             playing: false,
         };
 

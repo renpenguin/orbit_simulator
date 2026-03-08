@@ -6,11 +6,15 @@ use std::{
 mod planet;
 pub use planet::{Planet, TRAIL_SCALE, Vec2, get_planet_name_from_index};
 
+mod keplers_second_law;
+pub use keplers_second_law::K2L;
+
+
 #[derive(Debug)]
 pub struct Simulation {
     pub planets: Vec<Rc<RefCell<Planet>>>,
     pub tick_rate: usize,
-    // pub is_k2l_enabled: bool,
+    pub k2l: K2L,
     pub playing: bool,
 }
 
@@ -19,7 +23,7 @@ impl Default for Simulation {
         Self {
             planets: vec![],
             tick_rate: 1,
-            // is_k2l_enabled: false,
+            k2l: K2L::Disabled,
             playing: false,
         }
     }

@@ -44,6 +44,10 @@ impl Vec2 {
     pub fn length_sq(&self) -> f64 {
         self.x * self.x + self.y * self.y
     }
+
+    pub fn cross(&self, other: &Self) -> f64 {
+        self.x * other.y - self.y * other.x
+    }
 }
 
 impl From<Vec2> for Pos2 {
