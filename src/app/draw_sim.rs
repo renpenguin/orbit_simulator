@@ -2,7 +2,7 @@ use crate::{
     App,
     app::{
         ClickMode,
-        simulation::{self, TRAIL_SCALE, Vec2},
+        simulation::{self, TAIL_SCALE, Vec2},
     },
 };
 
@@ -41,7 +41,7 @@ impl App {
                     screen_position + side_offset,
                     screen_position - side_offset,
                     screen_position
-                        - (self.viewport_zoom * TRAIL_SCALE) as f32 * egui::Vec2::from(planet.vel),
+                        - (self.viewport_zoom * TAIL_SCALE) as f32 * egui::Vec2::from(planet.vel),
                     screen_position + side_offset,
                 ],
                 (1.0, egui::Color32::GRAY),
@@ -49,7 +49,7 @@ impl App {
 
             // Planet tail select circle
             if self.click_mode == ClickMode::Velocity {
-                let tail_length = (self.viewport_zoom * TRAIL_SCALE) as f32;
+                let tail_length = (self.viewport_zoom * TAIL_SCALE) as f32;
                 painter.circle_stroke(
                     screen_position - tail_length * egui::Vec2::from(planet.vel),
                     4.0,

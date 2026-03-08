@@ -157,7 +157,7 @@ impl App {
                         continue;
                     }
 
-                    let tail_pos = planet.pos - app::simulation::TRAIL_SCALE * planet.vel;
+                    let tail_pos = planet.pos - app::simulation::TAIL_SCALE * planet.vel;
                     if (tail_pos - mouse_pos).length_sq() < 16.0 {
                         clicked_planet = Some(idx);
                         break;

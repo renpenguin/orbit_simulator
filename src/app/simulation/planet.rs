@@ -7,7 +7,7 @@ use std::{
 use egui::Pos2;
 
 const G: f64 = 1.0; // Change later to 6.67e-11
-pub const TRAIL_SCALE: f64 = 8.0;
+pub const TAIL_SCALE: f64 = 8.0;
 
 pub fn get_planet_name_from_index(idx: usize) -> String {
     const NAMES_LEN: usize = 18;

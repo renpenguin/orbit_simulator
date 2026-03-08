@@ -5,7 +5,7 @@ use std::{
 
 use crate::app::{
     ClickMode,
-    simulation::{Planet, TRAIL_SCALE, Vec2},
+    simulation::{Planet, TAIL_SCALE, Vec2},
 };
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -128,11 +128,11 @@ impl Selection {
             } => {
                 if *snap_to_mouse {
                     // Aim with tool + mouse click
-                    planet.vel = (planet.pos - mouse_pos) / TRAIL_SCALE;
+                    planet.vel = (planet.pos - mouse_pos) / TAIL_SCALE;
                 } else {
                     // Aim with Select + V
                     planet.vel =
-                        *original_velocity - (mouse_pos - *initial_mouse_pos) / TRAIL_SCALE;
+                        *original_velocity - (mouse_pos - *initial_mouse_pos) / TAIL_SCALE;
                 }
             }
         }

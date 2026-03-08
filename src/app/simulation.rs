@@ -4,7 +4,7 @@ use std::{
 };
 
 mod planet;
-pub use planet::{Planet, TRAIL_SCALE, Vec2, get_planet_name_from_index};
+pub use planet::{Planet, TAIL_SCALE, Vec2, get_planet_name_from_index};
 
 mod keplers_second_law;
 pub use keplers_second_law::K2L;
