@@ -163,6 +163,7 @@ impl App {
             planets: vec![],
             tick_rate: parse_next::<usize>(&mut numbers)?,
             k2l: K2L::Disabled,
+            show_force_arrows: false,
             playing: false,
         };
 

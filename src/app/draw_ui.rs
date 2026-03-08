@@ -174,9 +174,7 @@ impl App {
                         self.simulation.k2l = if k2l_checked { K2L::IncorrectSetup } else { K2L::Disabled };
                     }
 
-                    if ui.button("Show forces acting on planets").clicked() {
-                        println!("Load a world from a file");
-                    }
+                    ui.checkbox(&mut self.simulation.show_force_arrows, "Show forces acting on planets").on_hover_text_at_pointer("Show arrows around planets indicating their directions of motion and the forces acting on them");
 
                     if ui.button("Clear trails").clicked() {
                         self.trail_manager.trails.clear();

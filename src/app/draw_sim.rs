@@ -80,4 +80,48 @@ impl App {
             (1.0, egui::Color32::LIGHT_BLUE),
         );
     }
+
+    pub fn draw_planet_forces(&self, painter: &egui::Painter) {
+        let planets_len = self.simulation.planets.len();
+        let mut radii = Vec::with_capacity(planets_len);
+
+        // Motion arrows and determine radii
+        for planet in self.simulation.get_planets() {
+            let radius = planet.radius();
+            radii.push(radius);
+
+            let vector_to_planet_edge = radius / planet.vel.length_sq().sqrt() * planet.vel;
+
+            painter.arrow(
+                self.sim_point_to_screen(planet.pos + vector_to_planet_edge),
+                (self.viewport_zoom * TAIL_SCALE * planet.vel).into(),
+                (1.0, egui::Color32::WHITE),
+            );
+        }
+
+        // Forces
+        for index_a in 0..planets_len {
+            let planet_a = self.simulation.planets[index_a].borrow();
+
+            for index_b in (index_a + 1)..planets_len {
+                let planet_b = self.simulation.planets[index_b].borrow();
+
+                let separation = planet_b.pos - planet_a.pos;
+                let distance_squared = separation.length_sq();
+                // F_g = G * m_1 * m_2 / d^2
+                let magnitude = 10.0 * (planet_a.mass * planet_b.mass / distance_squared).ln_1p();
+
+                let unit_vector = separation / distance_squared.sqrt();
+                let arrow_vector = (self.viewport_zoom * magnitude * unit_vector).into();
+
+                let planet_a_edge =
+                    self.sim_point_to_screen(planet_a.pos + radii[index_a] * unit_vector);
+                painter.arrow(planet_a_edge, arrow_vector, (1.0, egui::Color32::RED));
+
+                let planet_b_edge =
+                    self.sim_point_to_screen(planet_b.pos - radii[index_b] * unit_vector);
+                painter.arrow(planet_b_edge, -arrow_vector, (1.0, egui::Color32::RED));
+            }
+        }
+    }
 }

@@ -185,6 +185,10 @@ impl eframe::App for App {
                     .k2l
                     .draw_area(&painter, |p| self.sim_point_to_screen(p));
 
+                if self.simulation.show_force_arrows {
+                    self.draw_planet_forces(&painter);
+                }
+
                 // Draw planets
                 self.draw_planets(&painter);
                 if [ClickMode::Select, ClickMode::Insert].contains(&self.click_mode) {
