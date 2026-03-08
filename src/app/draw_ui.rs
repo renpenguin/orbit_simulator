@@ -5,7 +5,7 @@ use std::{
     rc::{Rc, Weak},
 };
 
-use crate::app::{App, ClickMode, Planet, Simulation, TrailManager};
+use crate::app::{App, ClickMode, Planet};
 
 /// Format to three significant figures
 pub fn format_3sf(number: f64, _decimals: std::ops::RangeInclusive<usize>) -> String {
@@ -134,12 +134,7 @@ impl App {
             egui::MenuBar::new().ui(ui, |ui| {
                 ui.menu_button("File", |ui| {
                     if ui.button("New simulation").clicked() {
-                        self.simulation = Simulation::default();
-                        self.trail_manager = TrailManager::default();
-                        #[cfg(not(target_arch = "wasm32"))] {
-                            self.save_file = None;
-                            self.error_message = None;
-                        }
+                        *self = Self::default();
                     }
                     if ui.button("Load from file").clicked() {
                         #[cfg(target_arch = "wasm32")]

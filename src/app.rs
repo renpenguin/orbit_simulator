@@ -25,7 +25,6 @@ enum ClickMode {
     Delete,
 }
 
-/// We derive Deserialize/Serialize so we can persist app state on shutdown.
 pub struct App {
     click_mode: ClickMode,
     shortcuts_shown: bool,
@@ -50,21 +49,12 @@ pub struct App {
     last_right_click_pos: Vec2,
 }
 
-impl App {
-    /// Called once before the first frame.
-    pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
-        cc.egui_ctx.set_theme(egui::Theme::Dark);
-        cc.egui_ctx.set_zoom_factor(1.4);
-        cc.egui_ctx.style_mut(|style| {
-            style.number_formatter = egui::style::NumberFormatter::new(draw_ui::format_3sf);
-        });
-
-        egui_material_icons::initialize(&cc.egui_ctx);
-
+impl Default for App {
+    fn default() -> Self {
         Self {
             click_mode: ClickMode::Select,
             shortcuts_shown: false,
-            tutorial_page: None, // Some(0) // TODO: only show tutorial on first run
+            tutorial_page: None,
 
             selection: Selection::None,
             simulation: Simulation::default(),
@@ -83,6 +73,21 @@ impl App {
 
             last_right_click_pos: Vec2::ZERO,
         }
+    }
+}
+
+impl App {
+    /// Called once before the first frame.
+    pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
+        cc.egui_ctx.set_theme(egui::Theme::Dark);
+        cc.egui_ctx.set_zoom_factor(1.4);
+        cc.egui_ctx.style_mut(|style| {
+            style.number_formatter = egui::style::NumberFormatter::new(draw_ui::format_3sf);
+        });
+
+        egui_material_icons::initialize(&cc.egui_ctx);
+
+        Self::default()
     }
 
     fn sim_point_to_screen(&self, sim_point: Vec2) -> egui::Pos2 {

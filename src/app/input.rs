@@ -29,13 +29,7 @@ impl App {
             egui::Key::O if modifiers.ctrl => self.load_native(),
 
             egui::Key::N if modifiers.ctrl => {
-                self.simulation = app::Simulation::default();
-                self.trail_manager = app::TrailManager::default();
-                #[cfg(not(target_arch = "wasm32"))]
-                {
-                    self.save_file = None;
-                    self.error_message = None;
-                }
+                *self = Self::default();
             }
 
             // Shortcut key

@@ -1,8 +1,12 @@
-use crate::App;
+use std::{fmt::Display, str::FromStr};
+
+use crate::{
+    App,
+    app::simulation::{Planet, Vec2},
+};
 
 #[cfg(target_arch = "wasm32")]
 use std::{cell::Cell, rc::Rc, thread};
-use std::{fmt::Display, str::FromStr};
 #[cfg(target_arch = "wasm32")]
 pub struct Task<T>(Rc<Cell<Option<thread::Result<T>>>>);
 
@@ -147,29 +151,27 @@ impl App {
     }
 
     fn load_simulation_from_string(&mut self, data: &str) -> Result<(), String> {
-        use crate::app::{ClickMode, Planet, Selection, Simulation, Vec2, TrailManager, simulation::K2L};
+        let mut app = Self::default();
+
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            app.save_file = self.save_file.clone();
+        }
 
         let mut numbers = data.split_whitespace();
 
         // Viewport focus and zoom
-        let viewport_focus = Vec2::new(parse_next(&mut numbers)?, parse_next(&mut numbers)?);
-        let viewport_zoom = parse_next::<f64>(&mut numbers)?;
-        if viewport_zoom <= 0.0 {
+        app.viewport_focus = Vec2::new(parse_next(&mut numbers)?, parse_next(&mut numbers)?);
+        app.viewport_zoom = parse_next::<f64>(&mut numbers)?;
+        if app.viewport_zoom <= 0.0 {
             return Err(String::from("viewport zoom value cannot be negative"));
         }
 
-        // Tick rate
-        let mut simulation = Simulation {
-            planets: vec![],
-            tick_rate: parse_next::<usize>(&mut numbers)?,
-            k2l: K2L::Disabled,
-            show_force_arrows: false,
-            playing: false,
-        };
+        app.simulation.tick_rate = parse_next::<usize>(&mut numbers)?; // Tick rate
 
         // Planets length
         let planets_len = parse_next::<usize>(&mut numbers)?;
-        simulation.planets.reserve(planets_len);
+        app.simulation.planets.reserve(planets_len);
 
         // Planets
         for _ in 0..planets_len {
@@ -184,18 +186,10 @@ impl App {
                 return Err(String::from("planet mass cannot be negative"));
             }
 
-            simulation.planets.push(planet.as_rc());
+            app.simulation.planets.push(planet.as_rc());
         }
 
-        self.click_mode = ClickMode::Select;
-        self.shortcuts_shown = false;
-        self.tutorial_page = None;
-        self.selection = Selection::None;
-        self.simulation = simulation;
-        self.trail_manager = TrailManager::default();
-        self.followed_planet = None;
-        self.viewport_focus = viewport_focus;
-        self.viewport_zoom = viewport_zoom;
+        *self = app; // No errors, set current app state
 
         Ok(())
     }
