@@ -124,7 +124,7 @@ impl eframe::App for App {
         }
         self.simulation
             .k2l
-            .sweep_area(&self.simulation.planets);
+            .sweep_area(&self.simulation.planets, self.simulation.playing);
 
         // Record the planet position *after* the simulation runs and adjust the viewport focus to keep the planet in place
         if let Some(planet_ref) = &self.followed_planet {

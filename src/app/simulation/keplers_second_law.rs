@@ -62,7 +62,7 @@ impl K2L {
         matches!(*self, Self::Disabled)
     }
 
-    pub fn sweep_area(&mut self, planets: &[Rc<RefCell<Planet>>]) {
+    pub fn sweep_area(&mut self, planets: &[Rc<RefCell<Planet>>], simulation_playing: bool) {
         if self.is_disabled() {
             return;
         }
@@ -76,6 +76,10 @@ impl K2L {
             *self = Self::new_some();
         }
 
+        if !simulation_playing {
+            return;
+        }
+
         let Self::Recording {
             sweep_separations,
             logged_areas,
@@ -87,11 +91,19 @@ impl K2L {
             unreachable!()
         };
 
-        *stationary_body_pos = stationary.pos;
+        // If the stationary body's position has changed, reset the counters
+        if stationary.pos != *stationary_body_pos {
+            *stationary_body_pos = stationary.pos;
+            *swept_area = 0.0;
+            sweep_separations.clear();
+        }
 
         // When the time interval has passed, log the swept area and reset the counters
         if sweep_separations.len() >= *time_interval {
-            logged_areas.push((*time_interval, *swept_area));
+            // Only log non-zero areas
+            if *swept_area > 0.0 {
+                logged_areas.push((*time_interval, *swept_area));
+            }
             *swept_area = 0.0;
             sweep_separations.clear();
         }
@@ -119,23 +131,22 @@ impl K2L {
             return;
         }
 
-        let screen_centre_pos = sim_to_screen(*stationary_body_pos);
-        let mut previous_vertex = sim_to_screen(*stationary_body_pos + sweep_separations[0]);
+        // Set up mesh with central body pos and first sweep separation as vertices
+        let mut drawn_swept_area = egui::Mesh::default();
+        drawn_swept_area.colored_vertex(sim_to_screen(*stationary_body_pos), Color32::GRAY);
+        drawn_swept_area.colored_vertex(sim_to_screen(*stationary_body_pos + sweep_separations[0]), Color32::GRAY);
 
+        let mut position_index = 1;
         for separation in sweep_separations.iter().skip(1) {
             let vertex = sim_to_screen(*stationary_body_pos + *separation);
 
-            // Construct triangle
-            let mut mesh = egui::Mesh::default();
-            mesh.colored_vertex(previous_vertex, Color32::GRAY);
-            mesh.colored_vertex(vertex, Color32::GRAY);
-            mesh.colored_vertex(screen_centre_pos, Color32::GRAY);
-            mesh.add_triangle(0, 1, 2);
-
-            painter.add(mesh); // Draw triangle
-
-            previous_vertex = vertex;
+            // Add vertex and define triangle
+            position_index += 1;
+            drawn_swept_area.colored_vertex(vertex, Color32::GRAY);
+            drawn_swept_area.add_triangle(0, position_index - 1, position_index);
         }
+
+        painter.add(drawn_swept_area); // Draw triangle
     }
 
     pub fn draw_popup(&mut self, ctx: &egui::Context) {
@@ -156,9 +167,12 @@ impl K2L {
                     swept_area,
                     ..
                 } = self else {
-                    ui.label("Error: Please ensure that there are\nonly two planets in the simulation,\nand that just one of them is locked\n in place");
+                    ui.label("Error: Please ensure that there are\nonly two planets in the simulation,\nand that just one of them is\nposition-locked via its popup");
                     return;
                 };
+
+                ui.label("A line segment between a planet and its orbit's central body sweeps out equal areas during equal time intervals.");
+                ui.separator();
 
                 egui::Grid::new("Kepler's Second Law").show(ui, |ui| {
                     ui.label("Time interval");
