@@ -6,7 +6,8 @@ use std::{
 
 use egui::Pos2;
 
-const G: f64 = 1.0; // Change later to 6.67e-11
+// G in mAU^3 muM0^-1 day^-2
+const G: f64 = 0.29591;
 pub const TAIL_SCALE: f64 = 8.0;
 
 pub fn get_planet_name_from_index(idx: usize) -> String {
@@ -143,7 +144,7 @@ impl Planet {
     /// Calculate the radius of the planet
     pub fn radius(&self) -> f64 {
         const PLANET_DESCALE: f64 = 4.0;
-        self.mass.sqrt() / PLANET_DESCALE
+        self.mass.cbrt() / PLANET_DESCALE
     }
 
     /// Calculate a vector of the gravitational force towards the other planet

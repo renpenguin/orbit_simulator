@@ -50,12 +50,12 @@ pub fn planet_popup(
         .open(&mut is_open)
         .show(ctx, |ui| {
             egui::Grid::new(planet_id).show(ui, |ui| {
-                ui.label("Position");
+                ui.label("Position (mAU)");
                 ui.add(egui::DragValue::new(&mut planet.pos.x));
                 ui.add(egui::DragValue::new(&mut planet.pos.y));
                 ui.end_row();
 
-                ui.label("Velocity");
+                ui.label("Velocity (mAU/day)");
                 ui.add(egui::DragValue::new(&mut planet.vel.x));
                 ui.add(egui::DragValue::new(&mut planet.vel.y));
                 ui.end_row();
@@ -71,11 +71,12 @@ pub fn planet_popup(
                         }
                         speed
                     })
+                    .suffix(" mAU/day")
                     .range(0.0..=f64::MAX),
                 );
                 ui.end_row();
 
-                ui.label("Mass");
+                ui.label("Mass (μM0)");
                 ui.add(egui::DragValue::new(&mut planet.mass).range(f64::EPSILON..=f64::MAX));
                 ui.end_row();
 
@@ -211,7 +212,8 @@ impl App {
 
                 ui.add_space(10.0);
 
-                ui.add(egui::DragValue::new(&mut self.simulation.tick_rate).custom_formatter(|num, _| (num as usize).to_string()).prefix("Tick rate: ").speed(0.01).range(1..=100));
+                ui.label("Sim-speed: ");
+                ui.add(egui::DragValue::new(&mut self.simulation.tick_rate).custom_formatter(|num, _| (num as usize).to_string()).suffix(" days/frame").speed(0.01).range(1..=100));
 
                 ui.add_space(10.0);
 

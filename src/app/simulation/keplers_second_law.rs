@@ -182,7 +182,7 @@ impl K2L {
                     ui.add(
                         egui::DragValue::new(time_interval)
                             .custom_formatter(|n, _| format!("{n:.0}"))
-                            .suffix(" frames")
+                            .suffix(" days")
                     );
                     ui.end_row();
 
