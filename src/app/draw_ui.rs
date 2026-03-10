@@ -137,19 +137,8 @@ impl App {
                     if ui.button("New simulation").clicked() {
                         *self = Self::empty(self.tutorial_page.is_some());
                     }
-                    if ui.button("Load from file").clicked() {
-                        #[cfg(target_arch = "wasm32")]
-                        self.load_web();
-                        #[cfg(not(target_arch = "wasm32"))]
-                        self.load_native();
-                    }
-                    if ui.button("Save simulation").clicked() {
-                        self.save();
-                    }
-                    #[cfg(not(target_arch = "wasm32"))]
-                    if ui.button("Save simulation as...").clicked() {
-                        self.save_as();
-                    }
+
+                    self.show_saveload_options(ui);
 
                     // NOTE: No File->Quit on web pages!
                     if !cfg!(target_arch = "wasm32") {

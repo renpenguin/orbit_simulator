@@ -253,4 +253,46 @@ impl App {
                 .show();
         }
     }
+
+    pub fn show_saveload_options(&mut self, ui: &mut egui::Ui) {
+        // Presets
+        ui.menu_button("Load preset", |ui| {
+            if ui.button("Solar System").clicked() {
+                *self = Self::empty(self.tutorial_page.is_some());
+                self.load_simulation_from_string(include_str!(
+                    "../../assets/simulations/solar_system.sim"
+                ))
+                .expect("Built-in preset file should be valid");
+            }
+            if ui.button("Kepler's Second Law demo").clicked() {
+                *self = Self::empty(self.tutorial_page.is_some());
+                self.load_simulation_from_string(include_str!(
+                    "../../assets/simulations/keplers_test.sim"
+                ))
+                .expect("Built-in preset file should be valid");
+                self.simulation.k2l = crate::app::simulation::K2L::new_some();
+            }
+            if ui.button("System with comets").clicked() {
+                *self = Self::empty(self.tutorial_page.is_some());
+                self.load_simulation_from_string(include_str!(
+                    "../../assets/simulations/system_with_comets.sim"
+                ))
+                .expect("Built-in preset file should be valid");
+            }
+        });
+
+        if ui.button("Load from file").clicked() {
+            #[cfg(target_arch = "wasm32")]
+            self.load_web();
+            #[cfg(not(target_arch = "wasm32"))]
+            self.load_native();
+        }
+        if ui.button("Save simulation").clicked() {
+            self.save();
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        if ui.button("Save simulation as...").clicked() {
+            self.save_as();
+        }
+    }
 }
