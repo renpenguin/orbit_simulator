@@ -4,10 +4,7 @@ use std::{
     rc::Rc,
 };
 
-use crate::app::{
-    draw_ui,
-    simulation::{Planet, Vec2},
-};
+use crate::app::simulation::{Planet, Vec2};
 
 /// Return the stationary and orbiting planet, if there are two total planets and the
 pub fn get_planet_setup<'a>(
@@ -186,10 +183,6 @@ impl K2L {
                     );
                     ui.end_row();
 
-                    ui.label("Current area so far");
-                    ui.label(draw_ui::format_3sf(*swept_area, 0..=1));
-                    ui.end_row();
-
                     ui.label("Past recorded areas:");
                     if ui.button("Reset").clicked() {
                         sweep_separations.clear();
@@ -206,10 +199,12 @@ impl K2L {
                     .stick_to_bottom(true)
                     .show(ui, |ui| {
                         for (interval, area) in &*logged_areas {
-                            ui.label(format!("{area:.3} swept in {interval} frames"));
+                            ui.label(format!("{area:.3} swept in {interval} days"));
                         }
-                        if logged_areas.is_empty() {
-                            ui.label("Recording...");
+                        if *swept_area > 0.0 {
+                            ui.label(format!("{swept_area:.3} swept in {} days", sweep_separations.len()));
+                        } else {
+                            ui.label("Press Play or `Space` to begin!");
                         }
                     });
             });

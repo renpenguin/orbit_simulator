@@ -143,8 +143,8 @@ impl Planet {
 
     /// Calculate the radius of the planet
     pub fn radius(&self) -> f64 {
-        const PLANET_DESCALE: f64 = 4.0;
-        self.mass.cbrt() / PLANET_DESCALE
+        const PLANET_DESCALE: f64 = 8.0;
+        self.mass.sqrt() / PLANET_DESCALE
     }
 
     /// Calculate a vector of the gravitational force towards the other planet

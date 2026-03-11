@@ -100,9 +100,7 @@ impl App {
         }
 
         // Forces
-        for index_a in 0..planets_len {
-            let planet_a = self.simulation.planets[index_a].borrow();
-
+        for (index_a, planet_a) in self.simulation.get_planets().enumerate() {
             for index_b in (index_a + 1)..planets_len {
                 let planet_b = self.simulation.planets[index_b].borrow();
 
