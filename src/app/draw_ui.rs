@@ -202,7 +202,7 @@ impl App {
                 ui.add_space(10.0);
 
                 ui.label("Sim-speed: ");
-                ui.add(egui::DragValue::new(&mut self.simulation.tick_rate).custom_formatter(|num, _| (num as usize).to_string()).suffix(" days/frame").speed(0.01).range(1..=100));
+                ui.add(egui::DragValue::new(&mut self.simulation.tick_rate).custom_formatter(|num, _| (num as usize).to_string()).suffix(" days/frame").speed(0.01).range(1..=usize::MAX));
 
                 ui.add_space(10.0);
 

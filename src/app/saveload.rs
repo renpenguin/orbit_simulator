@@ -164,7 +164,10 @@ impl App {
         app.viewport_focus = Vec2::new(parse_next(&mut numbers)?, parse_next(&mut numbers)?);
         app.viewport_zoom = parse_next::<f64>(&mut numbers)?;
         if app.viewport_zoom <= 0.0 {
-            return Err(String::from("viewport zoom value cannot be negative"));
+            return Err(format!(
+                "viewport zoom value cannot be zero or negative ({})",
+                app.viewport_zoom
+            ));
         }
 
         app.simulation.tick_rate = parse_next::<usize>(&mut numbers)?; // Tick rate
@@ -183,7 +186,10 @@ impl App {
                 popup_open: false,
             };
             if planet.mass <= 0.0 {
-                return Err(String::from("planet mass cannot be negative"));
+                return Err(format!(
+                    "planet mass cannot be zero or negative ({})",
+                    planet.mass
+                ));
             }
 
             app.simulation.planets.push(planet.as_rc());

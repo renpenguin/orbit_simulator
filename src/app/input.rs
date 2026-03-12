@@ -146,13 +146,14 @@ impl App {
                 .try_find_planet_at_pos(mouse_pos, 4.0 / self.viewport_zoom);
             // If no planet clicked directly and in velocity mode
             if clicked_planet.is_none() && self.click_mode == ClickMode::Velocity {
+                let tolerance = 16.0 / self.viewport_zoom.powi(2);
                 for (idx, planet) in self.simulation.get_planets().enumerate() {
                     if planet.vel == Vec2::ZERO {
                         continue;
                     }
 
                     let tail_pos = planet.pos - app::simulation::TAIL_SCALE * planet.vel;
-                    if (tail_pos - mouse_pos).length_sq() < 16.0 {
+                    if (tail_pos - mouse_pos).length_sq() < tolerance {
                         clicked_planet = Some(idx);
                         break;
                     }
