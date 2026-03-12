@@ -159,7 +159,7 @@ impl App {
                         self.simulation.k2l = if k2l_checked { K2L::IncorrectSetup } else { K2L::Disabled };
                     }
 
-                    ui.checkbox(&mut self.simulation.show_force_arrows, "Show forces acting on planets").on_hover_text_at_pointer("Show arrows around planets indicating their directions of motion and the forces acting on them");
+                    ui.checkbox(&mut self.simulation.show_force_arrows, "Show forces on planets").on_hover_text_at_pointer("Show arrows around planets indicating their directions of motion and the forces acting on them");
 
                     if ui.button("Clear trails").clicked() {
                         self.trail_manager.trails.clear();
@@ -173,10 +173,13 @@ impl App {
                     if ui.button("Shortcuts").on_hover_text_at_pointer("Show shortcuts screen").clicked() {
                         self.shortcuts_shown = !self.shortcuts_shown;
                     }
-                    ui.horizontal(|ui| {
-                        // icons::ICON_OPEN_IN_NEW = \u{e89e}
-                        ui.add(egui::Hyperlink::from_label_and_url("GitHub \u{e89e}", "https://github.com/renpenguin/orbit_simulator").open_in_new_tab(true));
-                    });
+
+                    ui.add(
+                        egui::Hyperlink::from_label_and_url(
+                            "GitHub \u{e89e}", // icons::ICON_OPEN_IN_NEW = \u{e89e}
+                            "https://github.com/renpenguin/orbit_simulator"
+                        ).open_in_new_tab(true)
+                    ).on_hover_text_at_pointer("View the source code and submit bug reports");
                 });
 
                 ui.add_space(10.0);
@@ -202,7 +205,13 @@ impl App {
                 ui.add_space(10.0);
 
                 ui.label("Sim-speed: ");
-                ui.add(egui::DragValue::new(&mut self.simulation.tick_rate).custom_formatter(|num, _| (num as usize).to_string()).suffix(" days/frame").speed(0.01).range(1..=usize::MAX));
+                ui.add(
+                    egui::DragValue::new(&mut self.simulation.tick_rate)
+                        .custom_formatter(|num, _| (num as usize).to_string())
+                        .suffix(" days/frame")
+                        .speed(0.01)
+                        .range(1..=usize::MAX)
+                ).on_hover_text_at_pointer("Change the simulation speed");
 
                 ui.add_space(10.0);
 

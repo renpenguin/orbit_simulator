@@ -278,6 +278,13 @@ impl App {
                 .expect("Built-in preset file should be valid");
                 self.simulation.k2l = crate::app::simulation::K2L::new_some();
             }
+            if ui.button("Sun-Earth-Moon").clicked() {
+                *self = Self::empty(self.tutorial_page.is_some());
+                self.load_simulation_from_string(include_str!(
+                    "../../assets/simulations/sun_earth_moon.sim"
+                ))
+                .expect("Built-in preset file should be valid");
+            }
             if ui.button("System with comets").clicked() {
                 *self = Self::empty(self.tutorial_page.is_some());
                 self.load_simulation_from_string(include_str!(
@@ -293,11 +300,11 @@ impl App {
             #[cfg(not(target_arch = "wasm32"))]
             self.load_native();
         }
-        if ui.button("Save simulation").clicked() {
+        if ui.button("Save simulation").on_hover_text_at_pointer("Save simulation to a local file").clicked() {
             self.save();
         }
         #[cfg(not(target_arch = "wasm32"))]
-        if ui.button("Save simulation as...").clicked() {
+        if ui.button("Save simulation as...").on_hover_text_at_pointer("Save simulation to a new local file, without overwriting the old one").clicked() {
             self.save_as();
         }
     }
