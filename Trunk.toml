@@ -1,3 +1,7 @@
 [build]
 filehash = false
 no_sri = false
+release = true
+
+[serve]
+addresses = ["0.0.0.0"]
