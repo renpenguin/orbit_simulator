@@ -131,102 +131,104 @@ pub fn message_dialogue(ctx: &egui::Context, message: &str) -> bool {
 
 impl App {
     pub fn draw_top_panel(&mut self, ctx: &egui::Context) {
-        egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
+        let panel_bottom_y = egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             egui::MenuBar::new().ui(ui, |ui| {
-                ui.menu_button("File", |ui| {
-                    if ui.button("New simulation").clicked() {
-                        *self = Self::empty(self.tutorial_page.is_some());
-                    }
-
-                    self.show_saveload_options(ui);
-
-                    // NOTE: No File->Quit on web pages!
-                    if !cfg!(target_arch = "wasm32") {
-                        ui.add(egui::Separator::default().grow(6.0));
-                        if ui.button("Quit").clicked() {
-                            ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                ui.horizontal_wrapped(|ui| {
+                    ui.menu_button("File", |ui| {
+                        if ui.button("New simulation").clicked() {
+                            *self = Self::empty(self.tutorial_page.is_some());
                         }
-                    }
-                });
 
-                ui.menu_button("Tools", |ui| {
-                    use crate::app::simulation::K2L;
-                    let mut k2l_checked = !matches!(self.simulation.k2l, K2L::Disabled);
-                    if ui.checkbox(&mut k2l_checked, "Kepler's Second Law")
-                        .on_hover_text_at_pointer("Show a visualisation of Kepler's Second Law")
-                        .changed()
-                    {
-                        self.simulation.k2l = if k2l_checked { K2L::IncorrectSetup } else { K2L::Disabled };
+                        self.show_saveload_options(ui);
+
+                        // NOTE: No File->Quit on web pages!
+                        if !cfg!(target_arch = "wasm32") {
+                            ui.add(egui::Separator::default().grow(6.0));
+                            if ui.button("Quit").clicked() {
+                                ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                            }
+                        }
+                    });
+
+                    ui.menu_button("Tools", |ui| {
+                        use crate::app::simulation::K2L;
+                        let mut k2l_checked = !matches!(self.simulation.k2l, K2L::Disabled);
+                        if ui.checkbox(&mut k2l_checked, "Kepler's Second Law")
+                            .on_hover_text_at_pointer("Show a visualisation of Kepler's Second Law")
+                            .changed()
+                        {
+                            self.simulation.k2l = if k2l_checked { K2L::IncorrectSetup } else { K2L::Disabled };
+                        }
+
+                        ui.checkbox(&mut self.simulation.show_force_arrows, "Show forces on planets").on_hover_text_at_pointer("Show arrows around planets indicating their directions of motion and the forces acting on them");
+
+                        if ui.button("Clear trails").clicked() {
+                            self.trail_manager.trails.clear();
+                        }
+                    });
+
+                    ui.menu_button("Help", |ui| {
+                        if ui.button("Tutorial").on_hover_text_at_pointer("Show the tutorial again").clicked() {
+                            self.tutorial_page = self.tutorial_page.map_or(Some(0), |_| None);
+                        }
+                        if ui.button("Shortcuts").on_hover_text_at_pointer("Show shortcuts screen").clicked() {
+                            self.shortcuts_shown = !self.shortcuts_shown;
+                        }
+
+                        ui.add(
+                            egui::Hyperlink::from_label_and_url(
+                                "GitHub \u{e89e}", // icons::ICON_OPEN_IN_NEW = \u{e89e}
+                                "https://github.com/renpenguin/orbit_simulator"
+                            ).open_in_new_tab(true)
+                        ).on_hover_text_at_pointer("View the source code and submit bug reports");
+                    });
+
+                    ui.add_space(10.0);
+
+                    ui.selectable_value(&mut self.click_mode, ClickMode::Select, "1. Select")
+                        .on_hover_text_at_pointer("Use the Select tool. Click on a planet to select it, then edit it using keyboard shortcuts (see the Help menu for shortcuts)");
+                    ui.selectable_value(&mut self.click_mode, ClickMode::Move, "2. Move")
+                        .on_hover_text_at_pointer("Use the Move tool. Drag a planet to move it");
+
+                    let resize_button = ui.selectable_value(&mut self.click_mode, ClickMode::Resize, "3. Resize")
+                        .on_hover_text_at_pointer("Use the Move tool. Grab the edge of a planet and drag to resize it");
+                    let velocity_button = ui.selectable_value(&mut self.click_mode, ClickMode::Velocity, "4. Velocity")
+                        .on_hover_text_at_pointer("Use the Move tool. Click and drag a planet or its tail to adjust its speed and direction of motion");
+                    if resize_button.clicked() || velocity_button.clicked() {
+                        self.simulation.playing = false; // Pause program when aiming or resizing
                     }
 
-                    ui.checkbox(&mut self.simulation.show_force_arrows, "Show forces on planets").on_hover_text_at_pointer("Show arrows around planets indicating their directions of motion and the forces acting on them");
+                    ui.selectable_value(&mut self.click_mode, ClickMode::Insert, "5. Insert")
+                        .on_hover_text_at_pointer("Use the Insert tool. Click in the simulation space to spawn a planet");
+                    ui.selectable_value(&mut self.click_mode, ClickMode::Delete, "6. Delete")
+                        .on_hover_text_at_pointer("Use the Delete tool. Click on a planet to delete it");
 
-                    if ui.button("Clear trails").clicked() {
-                        self.trail_manager.trails.clear();
-                    }
-                });
+                    ui.add_space(10.0);
 
-                ui.menu_button("Help", |ui| {
-                    if ui.button("Tutorial").on_hover_text_at_pointer("Show the tutorial again").clicked() {
-                        self.tutorial_page = self.tutorial_page.map_or(Some(0), |_| None);
-                    }
-                    if ui.button("Shortcuts").on_hover_text_at_pointer("Show shortcuts screen").clicked() {
-                        self.shortcuts_shown = !self.shortcuts_shown;
-                    }
-
+                    ui.label("Sim-speed: ");
                     ui.add(
-                        egui::Hyperlink::from_label_and_url(
-                            "GitHub \u{e89e}", // icons::ICON_OPEN_IN_NEW = \u{e89e}
-                            "https://github.com/renpenguin/orbit_simulator"
-                        ).open_in_new_tab(true)
-                    ).on_hover_text_at_pointer("View the source code and submit bug reports");
+                        egui::DragValue::new(&mut self.simulation.tick_rate)
+                            .custom_formatter(|num, _| (num as usize).to_string())
+                            .suffix(" days/frame")
+                            .speed(0.01)
+                            .range(1..=usize::MAX)
+                    ).on_hover_text_at_pointer("Change the simulation speed");
+
+                    ui.add_space(10.0);
+
+                    ui.with_layout(
+                        egui::Layout::right_to_left(egui::Align::Center),
+                        egui::warn_if_debug_build,
+                    );
                 });
-
-                ui.add_space(10.0);
-
-                ui.selectable_value(&mut self.click_mode, ClickMode::Select, "1. Select")
-                    .on_hover_text_at_pointer("Use the Select tool. Click on a planet to select it, then edit it using keyboard shortcuts (see the Help menu for shortcuts)");
-                ui.selectable_value(&mut self.click_mode, ClickMode::Move, "2. Move")
-                    .on_hover_text_at_pointer("Use the Move tool. Drag a planet to move it");
-
-                let resize_button = ui.selectable_value(&mut self.click_mode, ClickMode::Resize, "3. Resize")
-                    .on_hover_text_at_pointer("Use the Move tool. Grab the edge of a planet and drag to resize it");
-                let velocity_button = ui.selectable_value(&mut self.click_mode, ClickMode::Velocity, "4. Velocity")
-                    .on_hover_text_at_pointer("Use the Move tool. Click and drag a planet or its tail to adjust its speed and direction of motion");
-                if resize_button.clicked() || velocity_button.clicked() {
-                    self.simulation.playing = false; // Pause program when aiming or resizing
-                }
-
-                ui.selectable_value(&mut self.click_mode, ClickMode::Insert, "5. Insert")
-                    .on_hover_text_at_pointer("Use the Insert tool. Click in the simulation space to spawn a planet");
-                ui.selectable_value(&mut self.click_mode, ClickMode::Delete, "6. Delete")
-                    .on_hover_text_at_pointer("Use the Delete tool. Click on a planet to delete it");
-
-                ui.add_space(10.0);
-
-                ui.label("Sim-speed: ");
-                ui.add(
-                    egui::DragValue::new(&mut self.simulation.tick_rate)
-                        .custom_formatter(|num, _| (num as usize).to_string())
-                        .suffix(" days/frame")
-                        .speed(0.01)
-                        .range(1..=usize::MAX)
-                ).on_hover_text_at_pointer("Change the simulation speed");
-
-                ui.add_space(10.0);
-
-                ui.with_layout(
-                    egui::Layout::right_to_left(egui::Align::Center),
-                    egui::warn_if_debug_build,
-                );
             });
-        });
+        }).response.rect.bottom();
 
         egui::Window::new("Pause button")
             .title_bar(false)
             .resizable(false)
             .frame(egui::Frame::NONE)
-            .anchor(egui::Align2::RIGHT_TOP, (0.0, 16.0))
+            .anchor(egui::Align2::RIGHT_TOP, (0.0, panel_bottom_y - 8.0))
             .show(ctx, |ui| {
                 let pause_button_label = if self.simulation.playing {
                     icons::ICON_PAUSE

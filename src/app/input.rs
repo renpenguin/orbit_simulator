@@ -110,17 +110,14 @@ impl App {
         // Map screen coordinates to position in painter
         let mouse_pos = self.screen_point_to_sim(mouse_screen_pos);
 
-        self.handle_sim_mouse_input(&input_state.pointer, mouse_pos);
+        self.handle_sim_mouse_input(&input_state.pointer, mouse_pos, input_state.any_touches());
         self.selection.mouse_motion(mouse_pos);
         self.handle_selection_shortcut(input_state, mouse_pos);
 
-        // For App.handle_context_menu()
-        if input_state.pointer.secondary_clicked() {
-            self.last_right_click_pos = mouse_pos;
-        }
-
         // Zoom control
-        let zoom_factor = (0.01 * input_state.smooth_scroll_delta.y).exp() as f64;
+        let mut zoom_factor = (0.01 * input_state.smooth_scroll_delta.y).exp() as f64;
+        zoom_factor *= input_state.zoom_delta() as f64;
+
         if zoom_factor != 1.0 {
             let original_zoom = self.viewport_zoom;
             self.viewport_zoom *= zoom_factor;
@@ -131,9 +128,44 @@ impl App {
     }
 
     // Handle mouse inputs (clicking, moving) while over the simulation area
-    fn handle_sim_mouse_input(&mut self, mouse_state: &egui::PointerState, mouse_pos: Vec2) {
+    fn handle_sim_mouse_input(
+        &mut self,
+        mouse_state: &egui::PointerState,
+        mouse_pos: Vec2,
+        is_touch: bool,
+    ) {
+        // Size of click/tap in simulation space
+        let tolerance = (if is_touch { 8.0 } else { 4.0 }) / self.viewport_zoom;
+
+        // If clicked (not beginning of drag)
+        if mouse_state.primary_clicked() {
+            match self.click_mode {
+                ClickMode::Insert => {
+                    self.selection = Selection::None;
+                    let new_planet = Planet::new(mouse_pos, 960.0);
+                    self.selection = Selection::new(ClickMode::Select, &new_planet, mouse_pos);
+                    self.simulation.planets.push(new_planet);
+                }
+                ClickMode::Delete => {
+                    let clicked_planet =
+                        self.simulation.try_find_planet_at_pos(mouse_pos, tolerance);
+                    if let Some(i) = clicked_planet {
+                        self.simulation.planets.swap_remove(i);
+                        self.selection = Selection::None;
+                    }
+                }
+                _ => (),
+            }
+        }
+
+        // If dragging with middle click or without a selection
+        if mouse_state.middle_down() || (mouse_state.primary_down() && self.selection.is_none()) {
+            self.viewport_focus -= Vec2::from(mouse_state.delta()) / self.viewport_zoom;
+        }
+
+        // Mouse drag might initiate
         if mouse_state.primary_pressed() {
-            // If an operation is in progress, confirm it and don't attempt to select a new planet
+            // If there's an operation triggered with MRVID, confirm it and skip new planet selection
             if let Selection::Some { mode, .. } = &mut self.selection {
                 if *mode != SelectionMode::Selecting {
                     *mode = SelectionMode::Selecting;
@@ -141,64 +173,39 @@ impl App {
                 }
             }
 
-            let mut clicked_planet = self
-                .simulation
-                .try_find_planet_at_pos(mouse_pos, 4.0 / self.viewport_zoom);
-            // If no planet clicked directly and in velocity mode
+            // Attempt to click on planet
+            let mut clicked_planet = self.simulation.try_find_planet_at_pos(mouse_pos, tolerance);
+
+            // Attempt to click on planet's velocity select-circle
             if clicked_planet.is_none() && self.click_mode == ClickMode::Velocity {
-                let tolerance = 16.0 / self.viewport_zoom.powi(2);
+                let tolerance_sq = tolerance.powi(2);
                 for (idx, planet) in self.simulation.get_planets().enumerate() {
                     if planet.vel == Vec2::ZERO {
                         continue;
                     }
 
                     let tail_pos = planet.pos - app::simulation::TAIL_SCALE * planet.vel;
-                    if (tail_pos - mouse_pos).length_sq() < tolerance {
+                    if (tail_pos - mouse_pos).length_sq() < tolerance_sq {
                         clicked_planet = Some(idx);
                         break;
                     }
                 }
             }
 
-            match self.click_mode {
-                ClickMode::Insert => {
-                    self.selection = Selection::None;
-                    // Insert planet only on release
-                }
-                ClickMode::Delete => {
-                    if let Some(i) = clicked_planet {
-                        self.simulation.planets.swap_remove(i);
-                        self.selection = Selection::None;
-                    }
-                }
-                other => {
-                    if let Some(i) = clicked_planet {
-                        let planet = &self.simulation.planets[i];
-                        self.selection = Selection::new(other, planet, mouse_pos);
-                    } else {
-                        self.selection = Selection::None;
-                    }
-                }
-            }
-        }
-        // If dragging with middle click or without a selection
-        if mouse_state.middle_down() || (mouse_state.primary_down() && self.selection.is_none()) {
-            self.viewport_focus -= Vec2::from(mouse_state.delta()) / self.viewport_zoom;
-        }
-
-        if mouse_state.primary_released() {
-            // Complete operation if mouse released, selection exists and is not "Selected"
-            if matches!(&self.selection, Selection::Some { mode, .. } if *mode != SelectionMode::Selecting)
-            {
+            if let Some(i) = clicked_planet {
+                let planet = &self.simulation.planets[i];
+                self.selection = Selection::new(self.click_mode, planet, mouse_pos);
+            } else {
                 self.selection = Selection::None;
             }
+        }
 
-            // If released after not dragging in insert mode, create and select a new planet
-            if self.click_mode == ClickMode::Insert && !mouse_state.is_decidedly_dragging() {
-                let new_planet = Planet::new(mouse_pos, 960.0);
-                self.selection = Selection::new(ClickMode::Select, &new_planet, mouse_pos);
-                self.simulation.planets.push(new_planet);
-            }
+        // Mouse drag completed if mouse released, selection exists and is not "Selected"
+        if self.click_mode != ClickMode::Select
+            && mouse_state.primary_released()
+            && matches!(&self.selection, Selection::Some { mode, .. } if *mode != SelectionMode::Selecting)
+        {
+            self.selection = Selection::None;
         }
     }
 
@@ -243,6 +250,12 @@ impl App {
     }
 
     pub fn handle_context_menu(&mut self, response: &egui::Response) {
+        if response.secondary_clicked()
+            && let Some(mouse_screen_pos) = response.interact_pointer_pos()
+        {
+            self.last_right_click_pos = self.screen_point_to_sim(mouse_screen_pos);
+        }
+
         response.context_menu(|ui| {
             let click_pos = self.last_right_click_pos;
             let planet_under_mouse = self
