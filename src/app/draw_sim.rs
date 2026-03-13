@@ -90,7 +90,8 @@ impl App {
             let radius = planet.radius();
             radii.push(radius);
 
-            let vector_to_planet_edge = radius / planet.vel.length_sq().sqrt() * planet.vel;
+            let vector_to_planet_edge =
+                radius * simulation::inv_sqrt(planet.vel.length_sq()) * planet.vel;
 
             painter.arrow(
                 self.sim_point_to_screen(planet.pos + vector_to_planet_edge),
@@ -106,10 +107,9 @@ impl App {
 
                 let separation = planet_b.pos - planet_a.pos;
                 let distance_squared = separation.length_sq();
-                // F_g = G * m_1 * m_2 / d^2
                 let magnitude = 10.0 * (planet_a.mass * planet_b.mass / distance_squared).ln_1p();
 
-                let unit_vector = separation / distance_squared.sqrt();
+                let unit_vector = simulation::inv_sqrt(distance_squared) * separation;
                 let arrow_vector = (self.viewport_zoom * magnitude * unit_vector).into();
 
                 let planet_a_edge =

@@ -28,6 +28,17 @@ pub fn get_planet_name_from_index(idx: usize) -> String {
     name
 }
 
+// Fast inverse-square-root function
+pub fn inv_sqrt(x: f64) -> f64 {
+    let half_x = 0.5 * x;
+    let i = x.to_bits();
+    let i = 0x5fe6eb50c7b537a9u64 - (i >> 1);
+    let mut y = f64::from_bits(i);
+
+    y = y * (1.5 - half_x * y * y);
+    y * (1.5 - half_x * y * y)
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Vec2 {
     pub x: f64,
@@ -150,15 +161,14 @@ impl Planet {
     /// Calculate a vector of the gravitational force towards the other planet
     pub fn calculate_force_between_planets(&self, other: &Self) -> Vec2 {
         let separation = other.pos - self.pos;
-        // # We can calculate d^2 instead of d. This way we don't need to call sqrt()
-        let distance_squared = separation.length_sq();
+        // # We can calculate d^3 instead of d and d^2
+        let distance_inverse_cubed = inv_sqrt(separation.length_sq()).powi(3);
 
         // F_g = G * m_1 * m_2 / d^2
-        let magnitude = G * self.mass * other.mass / distance_squared;
-        // # Calculate angle from first planet to second planet
-        let direction = separation.y.atan2(separation.x);
+        let magnitude = G * self.mass * other.mass; // / distance_squared (instead .powi(3) in final equation)
 
-        magnitude * Vec2::new(direction.cos(), direction.sin())
+        // d = |DeltaX|, return |F_g| * DeltaX / d
+        magnitude * distance_inverse_cubed * separation
     }
 
     /// Return the resulting planet from a collision between two planets
