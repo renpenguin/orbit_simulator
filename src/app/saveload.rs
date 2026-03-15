@@ -300,11 +300,21 @@ impl App {
             #[cfg(not(target_arch = "wasm32"))]
             self.load_native();
         }
-        if ui.button("Save simulation").on_hover_text_at_pointer("Save simulation to a local file").clicked() {
+
+        if ui
+            .button("Save simulation")
+            .on_hover_text_at_pointer("Save simulation to a local file")
+            .clicked()
+        {
             self.save();
         }
+
         #[cfg(not(target_arch = "wasm32"))]
-        if ui.button("Save simulation as...").on_hover_text_at_pointer("Save simulation to a new local file, without overwriting the old one").clicked() {
+        if ui
+            .button("Save simulation as...")
+            .on_hover_text_at_pointer("Save simulation to a new local file")
+            .clicked()
+        {
             self.save_as();
         }
     }
