@@ -124,6 +124,7 @@ impl App {
                     0 => {
                         ui.label(egui::RichText::new("You can reopen this tutorial from the Help menu").strong());
                         ui.label("Welcome! This is a guide to using the simulator. Click the button below to load a demo, and press SPACE or the play button (top right) to start the simulation.");
+                        ui.label("You can choose other starting setups to load in the File > Presets menu (top left), such as a scale model of our Solar System!");
                         if ui.button("Load demo").on_hover_text_at_pointer("Load a ready-to-go sun-planet setup").clicked() {
                             self.simulation.planets.clear();
                             self.simulation.planets.push(FIXED_PLANET.as_rc());
